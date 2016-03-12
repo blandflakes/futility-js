@@ -1,0 +1,26 @@
+{
+  "name": "futility",
+  "version": "1.0.0",
+  "description": "Tool for analyzing and visualizing fitness of mutated MRSA for antibiotic resistance",
+  "scripts": {},
+  "author": "blandflakes",
+  "license": "Beerware",
+  "devDependencies": {
+    "jspm": "^0.16.27"
+  },
+  "jspm": {
+    "dependencies": {
+      "griddle-react": "npm:griddle-react@^0.3.1",
+      "jsx": "github:floatdrop/plugin-jsx@^1.2.1",
+      "react": "npm:react@^0.14.7",
+      "react-dom": "npm:react-dom@^0.14.7",
+      "react-tabs": "npm:react-tabs@^0.5.3",
+      "threadify": "npm:threadify@^0.2.0"
+    },
+    "devDependencies": {
+      "babel": "npm:babel-core@^5.8.24",
+      "babel-runtime": "npm:babel-runtime@^5.8.24",
+      "core-js": "npm:core-js@^1.1.4"
+    }
+  }
+}

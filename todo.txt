@@ -1,0 +1,46 @@
+2) Would be nice to automatically set dropdowns on ingest data page
+3) Ingesting multiple experiments at once can kill the machine with threads
+3) Create a server that can do the same feature extraction.
+4) All data analysis should probably be done in a web worker.
+1) Test in firefox with serial/parallel (also IE)
+4) Memory leak? Nothing is reclaimed until Chrome process dies
+8) Use maps earlier in feature analysis
+better loading screen (div that lays over everything else?)
+
+Styles: https://facebook.github.io/react/tips/inline-styles.html
+http://redux.js.org/docs/basics/UsageWithReact.html
+Note: Promises are not by their nature asynchronous.
+
+http://github.com/happypoulp/redux-tutorial/blob/master/11_src/src/home.jsx
+
+Start tracking in git.
+In particular, I want a checkpoint here where I'm at 300 seconds per experiment.
+We need to add a Java backend to compare performance.
+
+Get vizualizer reactified
+Data repositories need not be passed around the view so much? Should be able to create an interface that has the repo and functions close over it.
+When calculating right scaling, will have to get the max genome length for all the organisms on the screen.
+Going to have to do something about saving the state of the selected things to display.
+use componentWillReciveNewProps to deal with removal of things we're displaying.
+colors
+datum is singular, data is plural. Fix this everywhere.
+total number of reads for each item in the vizualizer
+
+Next:
+Need to block UI while loading.
+(Fitness table) Use a prefix query on the gene selector to account for selecting genes for a specific organism.
+Get fitness table working, you shit
+Maybe clicking on things back and forth adds to a "to-load" list instead of swapping focus.
+  * Doesn't make too much sense going from vizualizer to fitness table...
+  * Does make sense going from fitness table to vizualizer.
+  * Should be able to accomplish with the "selectedIndex" property.
+Remote data set milestone:
+Add ability to get control.igv from remote data set.
+Password protect remote dataset
+Add a linter
+
+General validation:
+- when importing an experiment, make sure it's gene table matches our control
+- when importing a tsv, throw useful errors
+- when importing an igv, throw useful error
+- when loading, disable tab switching
