@@ -79,7 +79,7 @@ export var FitnessTable = React.createClass({
         { experimentFeatures &&
           <Griddle results={experimentFeatures}
             showSettings={true}
-            noDataMessage={"Select a genome and gene."}
+            noDataMessage={"Import experiments and select a genome and gene."}
             resultsPerPage={100}
             initialSort={"condition"}
             columnMetadata={

@@ -4,7 +4,7 @@ import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 import { dataSetActions } from 'actions/ingest';
 import { FitnessTable } from 'components/fitness';
 import { IngestDataInterface } from 'components/ingest';
-import { GenomeVizualizer } from 'components/vizualizer';
+import { GenomeVisualizer } from 'components/visualizer';
 import { merge } from 'lib/func';
 
 var App = React.createClass({
@@ -40,7 +40,7 @@ var App = React.createClass({
           <Tab>Data Management</Tab>
         </TabList>
         <TabPanel>
-          <GenomeVizualizer genomes={this.state.genomes} displayableMapNames={displayableMapNames}
+          <GenomeVisualizer genomes={this.state.genomes} displayableMapNames={displayableMapNames}
             displayedInsertionMaps={this.state.displayedInsertionMaps} displayInsertionMap={this.displayInsertionMap}
             loading={this.state.loading} />
         </TabPanel>

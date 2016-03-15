@@ -3,9 +3,6 @@ import { basename, readTextFile } from 'lib/files';
 import { analyzeGenome, analyzeControl, analyzeExperiment } from 'lib/analysis';
 
 
-const NO_CONTROL_SELECTED = "NO_CONTROL_SELECTED";
-
-
 function fileArray(filesObj) {
   var fileArray = []
   for (var i = 0; i < filesObj.length; ++i) {
@@ -249,31 +246,37 @@ var DataViewer = React.createClass({
           labels in the visualizer. Note that if you remove a genome, it will remove all controls and therefore
           all experiments evaluated with that genome.</p>
         <table className="ingest">
-          <tr>
-            <th>Name:</th>
-          </tr>
-          {genomeRows}
+          <tbody>
+            <tr>
+              <th>Name:</th>
+            </tr>
+            {genomeRows}
+          </tbody>
         </table>
         <h2>Loaded Controls</h2>
         <p>This table shows all existing controls. These are used to normalize experiment files when we
           ingest them for analysis. Note that if you remove a control, it will remove all experiments
           normalized with that control.</p>
         <table className="ingest">
-          <tr>
-            <th>Name:</th>
-            <th>Linked Genome:</th>
-          </tr>
-          {controlRows}
+          <tbody>
+            <tr>
+              <th>Name:</th>
+              <th>Linked Genome:</th>
+            </tr>
+            {controlRows}
+          </tbody>
         </table>
         <h2>Loaded Experiments</h2>
         <p>This table shows all imported experiment files, with the control they were normalized against.
           You may remove any experiments that are no longer useful.</p>
         <table className="ingest">
-          <tr>
-            <th>Name:</th>
-            <th>Control used:</th>
-          </tr>
-          {experimentRows}
+          <tbody>
+            <tr>
+              <th>Name:</th>
+              <th>Control used:</th>
+            </tr>
+            {experimentRows}
+          </tbody>
         </table>
       </div>
     );

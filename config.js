@@ -17,6 +17,7 @@ System.config({
     "babel": "npm:babel-core@5.8.35",
     "babel-runtime": "npm:babel-runtime@5.8.35",
     "core-js": "npm:core-js@1.2.6",
+    "d3": "npm:d3@3.5.16",
     "griddle-react": "npm:griddle-react@0.3.1",
     "jsx": "github:floatdrop/plugin-jsx@1.2.1",
     "react": "npm:react@0.14.7",

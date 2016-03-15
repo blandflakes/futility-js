@@ -2,58 +2,16 @@ html,
 body { font: 14px "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
-div#outer {
-  width: 800px;
-  margin: 0px auto;
-  padding: 0px 50px;
+div.control div {
+  padding: 5px;
 }
 
-div#container {
-  width: 50%;
-  margin: 0 auto;
+.graphHeader {
+  padding: 10px;
 }
 
-div.bordered {
-  overflow: hidden;
-  padding: 25px;
-  border: 1px solid black;
-  margin: 5px;
-}
-
-div.left {
-  width: 48%;
-  float: left;
-}
-
-div.right {
-  width: 48%;
-  float: left;
-}
-
-div.textDisplay {
-  clear: left;
-}
-
-button.toggleable {
-  background: none;
-  border: none;
-  margin: 1px;
-}
-
-button.selected {
-  background-color: gray;
-}
-
-button.button {
-  margin: 5px 0px 0px 0px;
-}
-
-.corpusText {
-  margin: 5px;
-}
-
-.corpusName {
-  margin: 5px;
+.graphHeader span {
+  padding-right: 5px;
 }
 
 table {
@@ -74,4 +32,11 @@ tr:hover {
 
 th {
   background-color: steelblue;
+}
+
+.axis line,
+.axis path {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
 }
