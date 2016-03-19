@@ -25,7 +25,7 @@ var Axis = React.createClass({
  * scales: object of {x: y} d3 scales
  * visibleData: [{start, end, reads}]
  * visibleLabels: [{start, end, height}]
- * TODO: Why hardcoded 25 and 30 for axis offsets
+ * TODO: Why hardcoded 25 and 35 for axis offsets
  */
 var GenomeGraph = React.createClass({
   addZoom: function() {
@@ -56,7 +56,7 @@ var GenomeGraph = React.createClass({
              ref="svg" >
           <g transform={graphTranslate}>
             <Axis translate={"translate(0," + this.props.height + ")"} orient="bottom" scale={xScale} />
-            <text x={this.props.width / 2} y={this.props.height + 30} style={{textAnchor: "middle"}}>Position in genome</text>
+            <text x={this.props.width / 2} y={this.props.height + 35} style={{textAnchor: "middle"}}>Position in genome</text>
             <Axis orient="left" scale={yScale} />
             <text transform="rotate(-90)" x={0 - this.props.height / 2} y={0 - 40} style={{textAnchor: "middle"}}>Number of reads</text>
             {bars}
