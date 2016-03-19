@@ -4,6 +4,7 @@ https://facebook.github.io/react/docs/reusable-components.html
 upgrade jspm again after things work
 
 1) Need to figure out how to compare multiple organisms on the same screen (or not allow it?) because it will break the axis (and isn't meaningful).
+In other words, in visualizer, add organism selector.
 1) Add styling around various control entities (buttons, dropdowns, labels)
 2) Would be nice to automatically set dropdowns on ingest data page
 3) Ingesting multiple experiments at once can kill the machine with threads
