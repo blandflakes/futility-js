@@ -103,38 +103,66 @@ export var GenomeVisualizer = React.createClass({
   height: 250,
   margin: { top: 10, right: 20, bottom: 50, left: 50 },
   readCeiling: 1000,
-  genomeLength: 2821361, // TODO get this from current genome rather than hardcoding
   getInitialState: function() {
+    // initialize scales and zoom for this organism
     var xScale = d3.scale.linear().domain([0, this.width]).range([0, this.width]);
     var yScale = d3.scale.linear().domain([0, this.readCeiling]).range([this.height, 0]);
-    var self = this;
     var zoom = d3.behavior.zoom().x(xScale).scaleExtent([1, 10]).on("zoom", function() {
       if (xScale.domain()[0] < 0) {
         window.console.log("Detected panning visualization too far to the right. Resetting x domain to [0, width].");
         zoom.translate([zoom.translate()[0] - xScale(0) + xScale.range()[0], zoom.translate()[1]]);
         window.console.log("x domain: " + xScale.domain());
       }
-      else if (xScale.domain()[1] > this.genomeLength) {
-        window.console.log("Detected panning visualization too far to the left. Resetting x domain to [genomeLength, genomeLength - width]");
-        zoom.translate([zoom.translate()[0] - xScale(this.genomeLength) + xScale.range()[1], zoom.translate()[1]]);
+      else if (xScale.domain()[1] > this.state.maxPosition) {
+        window.console.log("Detected panning visualization too far to the left. Resetting x domain to [longestMapLength, longestMapLength - width]");
+        zoom.translate([zoom.translate()[0] - xScale(this.state.maxPosition) + xScale.range()[1], zoom.translate()[1]]);
         window.console.log("x domain: " + xScale.domain());
       }
       // We never translate the y domain, but we will scale the height.
-      yScale.domain([0, self.readCeiling / zoom.scale()]);
-      self.forceUpdate();
-    });
-    return { selectedInsertionMapName: null, positionalInput: "",
-             scales: { x: xScale, y: yScale }, zoom: zoom };
+      yScale.domain([0, this.readCeiling / zoom.scale()]);
+      this.forceUpdate();
+    }.bind(this));
+    return { selectedInsertionMap: null, positionalInput: "", selectedGenome: null,
+             scales: { x: xScale, y: yScale}, zoom: zoom, maxPosition: 0 };
+  },
+  updateSelectedGenome: function(e) {
+    var newGenomeName = e.target.value;
+    if (!this.state.selectedGenome || e.target.value !== this.state.selectedGenome.name) {
+      if (this.state.selectedGenome && Object.values(this.props.displayedInsertionMaps).length > 0) {
+        var result = confirm("Change genome and remove all displayed maps?");
+        if (!result) { return; }
+        this.props.resetDisplayedMaps();
+      }
+
+      var newGenome = this.props.genomes[newGenomeName];
+      this.setState({ selectedGenome: newGenome });
+    }
+  },
+  updateSelectedInsertionMap: function(e) {
+    var map;
+    if (this.props.controls[e.target.value]) {
+      map = this.props.controls[e.target.value];
+    }
+    else if (this.props.experiments[e.target.value]) {
+      map = this.props.experiments[e.target.value];
+    }
+    else {
+      alert("No data set found with name: " + insertionMapName);
+      return;
+    }
+    this.setState({ selectedInsertionMap: map });
   },
   updatePositionalInput: function(e) {
     this.setState({ positionalInput: e.target.value });
   },
-  panToPosition: function() {
+  panToPosition: function(e) {
+    // If this came from a form, don't allow the event to submit.
+    if (e) { e.preventDefault(); }
     var target = this.state.positionalInput;
     var targetIndex;
     if (isNaN(target)) {
       // Hopefully a string label.
-      var map = this.props.genomes["saouhsc"].map; // TODO this is hardcoded and sad
+      var map = this.state.selectedGenome.map;
       var label = map[target];
       if (exists(label)) {
         targetIndex = (label.start + label.end) / 2;
@@ -158,28 +186,33 @@ export var GenomeVisualizer = React.createClass({
     this.state.zoom.translate([this.state.zoom.scale() * (0 - targetIndex), 0]);
     this.forceUpdate();
   },
-  updateSelectedInsertionMap: function(e) {
-    this.setState({ selectedInsertionMapName: e.target.value });
-  },
   selectedMapAlreadyDisplayed: function() {
-    var displayedMaps = this.props.displayedInsertionMaps;
-    for (var i = 0; i < displayedMaps.length; ++i) {
-      if (displayedMaps[i].name === this.state.selectedInsertionMapName) {
-        return true;
-      }
-    }
-    return false;
+    return this.props.displayedInsertionMaps[this.state.selectedInsertionMap.name];
   },
   addInsertionMap: function() {
-    this.props.displayInsertionMap(this.state.selectedInsertionMapName);
+    var mapToAdd = this.state.selectedInsertionMap;
+    this.setState({ maxPosition: Math.max(this.state.maxPosition, mapToAdd.backingIgv.stats.maxPosition) });
+    this.props.displayInsertionMap(mapToAdd);
   },
   render: function() {
-    var mapOptions = this.props.displayableMapNames.sort().map(function(mapName) {
+    var genomeOptions = Object.keys(this.props.genomes).map(function(genomeName) {
+      return <option value={genomeName} key={genomeName}>{genomeName}</option>;
+    });
+    var availableMaps;
+    if (this.state.selectedGenome) {
+      availableMaps = Object.values(this.props.controls).concat(Object.values(this.props.experiments)).filter(function(analyzedItem) {
+        return analyzedItem.genomeName === this.state.selectedGenome.name;
+      }.bind(this)).map(function(relatedItem) { return relatedItem.name; });
+    }
+    else {
+      availableMaps = [];
+    }
+    var mapOptions = availableMaps.sort().map(function(mapName) {
       return <option value={mapName} key={mapName}>{mapName}</option>;
     });
-    var graphs = this.props.displayedInsertionMaps.map(function(displayedMap) {
+    var graphs = Object.values(this.props.displayedInsertionMaps).map(function(displayedMap) {
       var visibleMappings = visibleItems(displayedMap.heightMappings, this.state.scales.x);
-      var visibleLabels = visibleItems(this.props.genomes["saouhsc"].listing, this.state.scales.x); // TODO remove hardcoded organism access
+      var visibleLabels = visibleItems(this.state.selectedGenome.listing, this.state.scales.x);
       var removeHandler = function() { this.props.removeDisplayedMap(displayedMap.name); }.bind(this);
       return (
         <div className="graphContainer" key={displayedMap.name}>
@@ -196,16 +229,22 @@ export var GenomeVisualizer = React.createClass({
       <div>
         <div className="controlPanel">
           <div className="selectorDiv">
+            <select value={this.state.selectedGenome && this.state.selectedGenome.name} onChange={this.updateSelectedGenome} defaultValue="NONE_SELECTED" >
+              { !this.state.selectedGenome && <option value="NONE_SELECTED" disabled="disabled">Select a Genome</option> }
+              {genomeOptions}
+            </select>
             <select onChange={this.updateSelectedInsertionMap} className="insertionMapSelector" defaultValue="NONE_SELECTED" >
-              { !this.state.selectedInsertionMapName && <option value="NONE_SELECTED" disabled="disabled"></option> }
+              { !this.state.selectedInsertionMapName && <option value="NONE_SELECTED" disabled="disabled">Select an insertion map</option> }
               {mapOptions}
             </select>
-            <button disabled={!this.state.selectedInsertionMapName || this.selectedMapAlreadyDisplayed()} onClick={this.addInsertionMap}>Add!</button>
+            <button disabled={!this.state.selectedInsertionMap || this.selectedMapAlreadyDisplayed()} onClick={this.addInsertionMap}>Add!</button>
           </div>
           <div className="navigationDiv">
             <span>Enter a gene or position: </span>
-            <input type="text" onChange={this.updatePositionalInput} />
-            <button onClick={this.panToPosition}>Pan</button>
+            <form className="panForm" onSubmit={this.panToPosition}>
+              <input type="text" onChange={this.updatePositionalInput} />
+              <button disabled={this.state.positionalInput.length === 0} onClick={this.panToPosition}>Pan</button>
+            </form>
           </div>
           <div className="insertionMaps">
             {graphs}

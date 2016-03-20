@@ -1,47 +1,35 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+
+import Loader from 'react-loader';
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
+
 import { dataSetActions } from 'actions/ingest';
+
 import { FitnessTable } from 'components/fitness';
 import { IngestDataInterface } from 'components/ingest';
 import { GenomeVisualizer } from 'components/visualizer';
-import { merge } from 'lib/func';
+
+import { assoc, merge } from 'lib/func';
 
 var App = React.createClass({
-  // TODO add a "loading" state
   getInitialState: function() {
     return {
       genomes: {}, controls: {}, experiments: {},
-      displayedInsertionMaps: [],
+      displayedInsertionMaps: {},
       loading: false
     };
   },
-  displayInsertionMap: function(insertionMapName) {
-    var mapToAdd;
-    if (this.state.controls[insertionMapName]) {
-      mapToAdd = this.state.controls[insertionMapName];
-    }
-    else if (this.state.experiments[insertionMapName]) {
-      mapToAdd = this.state.experiments[insertionMapName];
-    }
-    else {
-      alert("No data set found with name: " + insertionMapName);
-      return;
-    }
-    this.setState({ displayedInsertionMaps: this.state.displayedInsertionMaps.concat([mapToAdd]) });
+  displayInsertionMap: function(insertionMap) {
+    this.setState({ displayedInsertionMaps: assoc(this.state.displayedInsertionMaps, insertionMap.name, insertionMap) });
   },
   removeDisplayedMap: function(nameOfMapToRemove) {
-    var newListOfDisplayedMaps = [];
-    for (var i = 0; i < this.state.displayedInsertionMaps.length; ++i) {
-      var map = this.state.displayedInsertionMaps[i];
-      if (map.name !== nameOfMapToRemove) {
-        newListOfDisplayedMaps.push(map);
-      }
-    }
-    this.setState({ displayedInsertionMaps: newListOfDisplayedMaps });
+    this.setState({ displayedInsertionMaps: dissoc(this.state.displayedInsertionMaps, nameOfMapToRemove) });
+  },
+  resetDisplayedMaps: function() {
+    this.setState({ displayedInsertionMaps: {} });
   },
   render: function() {
-    var displayableMapNames = Object.keys(this.state.controls).concat(Object.keys(this.state.experiments));
     return (
       <Tabs>
         <TabList>
@@ -50,16 +38,18 @@ var App = React.createClass({
           <Tab>Data Management</Tab>
         </TabList>
         <TabPanel>
-          <GenomeVisualizer genomes={this.state.genomes} displayableMapNames={displayableMapNames}
+          <GenomeVisualizer genomes={this.state.genomes} controls={this.state.controls} experiments={this.state.experiments}
             displayedInsertionMaps={this.state.displayedInsertionMaps} displayInsertionMap={this.displayInsertionMap}
-            removeDisplayedMap={this.removeDisplayedMap} loading={this.state.loading} />
+            removeDisplayedMap={this.removeDisplayedMap} loading={this.state.loading} resetDisplayedMaps={this.resetDisplayedMaps} />
         </TabPanel>
         <TabPanel>
           <FitnessTable genomes={this.state.genomes} experiments={this.state.experiments} />
         </TabPanel>
         <TabPanel>
-          <IngestDataInterface genomes={this.state.genomes} controls={this.state.controls}
-            experiments={this.state.experiments} actions={dataSetActions(this)} loading={this.state.loading} />
+          <Loader loaded={!this.state.loading}>
+            <IngestDataInterface genomes={this.state.genomes} controls={this.state.controls}
+              experiments={this.state.experiments} actions={dataSetActions(this)} loading={this.state.loading} />
+          </Loader>
         </TabPanel>
       </Tabs>
     );

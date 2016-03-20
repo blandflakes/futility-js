@@ -148,9 +148,9 @@ var ControlUploader = React.createClass({
     return (
       <div className="controlUploader">
         <h2>Import New Control:</h2>
-        <span>Select a genome: </span>
+        <span>Genome: </span>
         <select value={this.state.selectedGenome && this.state.selectedGenome.name} onChange={this.updateSelectedGenome} defaultValue="NONE_SELECTED" >
-          { !this.state.selectedGenome && <option value="NONE_SELECTED" disabled="disabled"></option> }
+          { !this.state.selectedGenome && <option value="NONE_SELECTED" disabled="disabled">Select a genome</option> }
           {genomeOptions}
         </select>
         <br />
@@ -208,9 +208,9 @@ var ExperimentUploader = React.createClass({
     return (
       <div className="experimentUploader">
         <h2>Import Experiments:</h2>
-        <span>Select a control file: </span>
+        <span>Control file: </span>
         <select value={this.state.selectedControl && this.state.selectedControl.name} onChange={this.updateSelectedControl} defaultValue="NONE_SELECTED" >
-          { !this.state.selectedControl && <option value="NONE_SELECTED" disabled="disabled"></option> }
+          { !this.state.selectedControl && <option value="NONE_SELECTED" disabled="disabled">Select a control file</option> }
           {controlOptions}
         </select>
         <br />

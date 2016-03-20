@@ -22,6 +22,7 @@ System.config({
     "jsx": "github:floatdrop/plugin-jsx@1.2.1",
     "react": "npm:react@0.14.7",
     "react-dom": "npm:react-dom@0.14.7",
+    "react-loader": "npm:react-loader@2.2.0",
     "react-tabs": "npm:react-tabs@0.5.3",
     "threadify": "npm:threadify@0.2.0",
     "github:floatdrop/plugin-jsx@1.2.1": {
@@ -393,6 +394,11 @@ System.config({
     },
     "npm:react-dom@0.14.7": {
       "react": "npm:react@0.14.7"
+    },
+    "npm:react-loader@2.2.0": {
+      "react": "npm:react@0.14.7",
+      "react-dom": "npm:react-dom@0.14.7",
+      "spin.js": "npm:spin.js@2.3.2"
     },
     "npm:react-tabs@0.5.3": {
       "assert": "github:jspm/nodelibs-assert@0.1.0",

@@ -1,43 +1,34 @@
-https://github.com/freddyrangel/playing-with-react-and-d3
-https://facebook.github.io/react/docs/reusable-components.html
-
-upgrade jspm again after things work
-
-1) Need to figure out how to compare multiple organisms on the same screen (or not allow it?) because it will break the axis (and isn't meaningful).
-In other words, in visualizer, add organism selector.
-1) Add styling around various control entities (buttons, dropdowns, labels)
-2) Would be nice to automatically set dropdowns on ingest data page
+Immediate TODO:
+1) With redux, ensure that removing a dataset removes it from visualizer as well
+1) search for more reusable components
 3) Ingesting multiple experiments at once can kill the machine with threads
-3) Create a server that can do the same feature extraction.
 4) All data analysis should probably be done in a web worker.
-1) Test in firefox with serial/parallel (also IE)
-8) Use maps earlier in feature analysis
-better loading screen (div that lays over everything else?)
+1) Add styling around various control entities (buttons, dropdowns, labels)
+1) When changing an organism in the visualizer, get rid of existing graphs
+1) Remove hardcoded organism selection, lazy-init things that rely on it
 
-Styles: https://facebook.github.io/react/tips/inline-styles.html
+Future TODO:
+1) Create a server that can do the same feature extraction. DELAYED - will revisit with clustering
+2) Maybe Java installed version?
+3) Local storage of loaded data sets
+  * cache via a version and a checksum
+
 http://redux.js.org/docs/basics/UsageWithReact.html
 Note: Promises are not by their nature asynchronous.
 
 http://github.com/happypoulp/redux-tutorial/blob/master/11_src/src/home.jsx
 
-We need to add a Java backend to compare performance.
-
-Get vizualizer reactified
-Data repositories need not be passed around the view so much? Should be able to create an interface that has the repo and functions close over it.
-Going to have to do something about saving the state of the selected things to display.
 use componentWillReciveNewProps to deal with removal of things we're displaying.
 datum is singular, data is plural. Fix this everywhere.
 total number of reads for each item in the vizualizer
 
 Next:
-Need to block UI while loading.
 (Fitness table) Use a prefix query on the gene selector to account for selecting genes for a specific organism.
 Maybe clicking on things back and forth adds to a "to-load" list instead of swapping focus.
   * Doesn't make too much sense going from vizualizer to fitness table...
   * Does make sense going from fitness table to vizualizer.
   * Should be able to accomplish with the "selectedIndex" property.
 Remote data set milestone:
-Add ability to get control.igv from remote data set.
 Password protect remote dataset
 Add a linter
 
