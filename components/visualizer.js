@@ -44,11 +44,22 @@ var GenomeGraph = React.createClass({
     var margin = this.props.margin;
     var graphTranslate = "translate(" + margin.left + "," + margin.top + ")";
     var bars = this.props.visibleMappings.map(function(readMapping) {
-      return <rect y={ Math.max(yScale(readMapping.reads), 0) } x={ xScale(readMapping.start) }
+      return <rect y={ Math.max(yScale(readMapping.reads), 0) } x={ xScale(readMapping.start)} key={readMapping.start}
                    height={ this.props.height - Math.max(yScale(readMapping.reads), 0) }
                    width={ xScale(readMapping.end) - xScale(readMapping.start) }
                    fill={ readMapping.color }/>;
     }.bind(this));
+    var labels = this.props.visibleLabels.map(function(labelMapping) {
+      return (
+        <g className="label" transform={"translate(" + Math.max(xScale(labelMapping.start), 0) + ",0)"} key={labelMapping.name}>
+          <rect width={xScale(labelMapping.end) - Math.max(xScale(labelMapping.start), 0)} height={20} >
+          </rect>
+          <text x={0} y={15}>
+            {labelMapping.name}
+          </text>
+        </g>
+      );
+    });
     return (
       <div className="genomeGraph">
         <svg width={this.props.width + this.props.margin.left + this.props.margin.right}
@@ -60,6 +71,11 @@ var GenomeGraph = React.createClass({
             <Axis orient="left" scale={yScale} />
             <text transform="rotate(-90)" x={0 - this.props.height / 2} y={0 - 40} style={{textAnchor: "middle"}}>Number of reads</text>
             {bars}
+          </g>
+        </svg>
+        <svg width={this.props.width + this.props.margin.left + this.props.margin.right} height={20} >
+          <g transform={"translate(" + this.props.margin.left + ",0)"}>
+            {labels}
           </g>
         </svg>
       </div>
@@ -141,33 +157,38 @@ export var GenomeVisualizer = React.createClass({
     }
     this.state.zoom.translate([this.state.zoom.scale() * (0 - targetIndex), 0]);
     this.forceUpdate();
-    /*
-      d3.transition()
-        .duration(50)
-        .call(zoom.translate([zoom.scale() * (0 - target_index), 0]).event);
-    TODO remove this if we don't need it */
   },
   updateSelectedInsertionMap: function(e) {
     this.setState({ selectedInsertionMapName: e.target.value });
+  },
+  selectedMapAlreadyDisplayed: function() {
+    var displayedMaps = this.props.displayedInsertionMaps;
+    for (var i = 0; i < displayedMaps.length; ++i) {
+      if (displayedMaps[i].name === this.state.selectedInsertionMapName) {
+        return true;
+      }
+    }
+    return false;
   },
   addInsertionMap: function() {
     this.props.displayInsertionMap(this.state.selectedInsertionMapName);
   },
   render: function() {
     var mapOptions = this.props.displayableMapNames.sort().map(function(mapName) {
-      return <option value={mapName}>{mapName}</option>;
+      return <option value={mapName} key={mapName}>{mapName}</option>;
     });
     var graphs = this.props.displayedInsertionMaps.map(function(displayedMap) {
       var visibleMappings = visibleItems(displayedMap.heightMappings, this.state.scales.x);
-      // displayed map is... what? { heightMappings, name, genomeName... }
+      var visibleLabels = visibleItems(this.props.genomes["saouhsc"].listing, this.state.scales.x); // TODO remove hardcoded organism access
+      var removeHandler = function() { this.props.removeDisplayedMap(displayedMap.name); }.bind(this);
       return (
-        <div className="graphContainer">
+        <div className="graphContainer" key={displayedMap.name}>
           <div className="graphHeader">
             <span>{displayedMap.name}</span>
-            <button onclick={this.props.removeDisplayedMap}>Remove this graph</button>
+            <button onClick={removeHandler}>Remove this graph</button>
           </div>
           <GenomeGraph scales={this.state.scales} width={this.width} height={this.height} margin={this.margin}
-            visibleMappings={visibleMappings} zoom={this.state.zoom} />
+            visibleMappings={visibleMappings} zoom={this.state.zoom} visibleLabels={visibleLabels} />
         </div>
       );
     }.bind(this));
@@ -175,11 +196,11 @@ export var GenomeVisualizer = React.createClass({
       <div>
         <div className="controlPanel">
           <div className="selectorDiv">
-            <select onChange={this.updateSelectedInsertionMap} className="insertionMapSelector">
-              { !this.state.selectedInsertionMapName && <option selected="true" disabled="disabled"></option> }
+            <select onChange={this.updateSelectedInsertionMap} className="insertionMapSelector" defaultValue="NONE_SELECTED" >
+              { !this.state.selectedInsertionMapName && <option value="NONE_SELECTED" disabled="disabled"></option> }
               {mapOptions}
             </select>
-            <button disabled={!this.state.selectedInsertionMapName} onClick={this.addInsertionMap}>Add!</button>
+            <button disabled={!this.state.selectedInsertionMapName || this.selectedMapAlreadyDisplayed()} onClick={this.addInsertionMap}>Add!</button>
           </div>
           <div className="navigationDiv">
             <span>Enter a gene or position: </span>

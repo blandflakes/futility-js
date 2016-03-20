@@ -44,12 +44,12 @@ export var FitnessTable = React.createClass({
   },
   render: function() {
     var genomeOptions = Object.keys(this.props.genomes).map(function(genomeName) {
-      return <option value={genomeName}>{genomeName}</option>;
+      return <option value={genomeName} key={genomeName}>{genomeName}</option>;
     });
     var geneOptions;
     if (this.state.selectedGenome) {
       geneOptions = Object.keys(this.state.selectedGenome.map).map(function(geneName) {
-        return <option value={geneName}>{geneName}</option>;
+        return <option value={geneName} key={geneName}>{geneName}</option>;
       });
     }
     else {
@@ -68,12 +68,12 @@ export var FitnessTable = React.createClass({
     }
     return (
       <div>
-        <select value={this.state.selectedGenome && this.state.selectedGenome.name} onChange={this.updateSelectedGenome}>
-          { !this.state.selectedGenome && <option selected="true" disabled="disabled">Select a Genome</option> }
+        <select value={this.state.selectedGenome && this.state.selectedGenome.name} onChange={this.updateSelectedGenome} defaultValue="NONE_SELECTED" >
+          { !this.state.selectedGenome && <option value="NONE_SELECTED" disabled="disabled">Select a Genome</option> }
           {genomeOptions}
         </select>
-        <select value={this.state.selectedGene && this.state.selectedGene.name} onChange={this.updateSelectedGene}>
-          { !this.state.selectedGene && <option selected="true" disabled="disabled">Select a Gene</option> }
+        <select value={this.state.selectedGene && this.state.selectedGene.name} onChange={this.updateSelectedGene} defaultValue="NONE_SELECTED" >
+          { !this.state.selectedGene && <option value="NONE_SELECTED" disabled="disabled">Select a Gene</option> }
           {geneOptions}
         </select>
         { experimentFeatures &&

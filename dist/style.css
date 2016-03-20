@@ -40,3 +40,11 @@ th {
   stroke: #000;
   shape-rendering: crispEdges;
 }
+
+.label rect {
+  fill: steelblue;
+}
+
+.label text {
+  fill: white;
+}

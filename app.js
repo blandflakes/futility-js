@@ -30,6 +30,16 @@ var App = React.createClass({
     }
     this.setState({ displayedInsertionMaps: this.state.displayedInsertionMaps.concat([mapToAdd]) });
   },
+  removeDisplayedMap: function(nameOfMapToRemove) {
+    var newListOfDisplayedMaps = [];
+    for (var i = 0; i < this.state.displayedInsertionMaps.length; ++i) {
+      var map = this.state.displayedInsertionMaps[i];
+      if (map.name !== nameOfMapToRemove) {
+        newListOfDisplayedMaps.push(map);
+      }
+    }
+    this.setState({ displayedInsertionMaps: newListOfDisplayedMaps });
+  },
   render: function() {
     var displayableMapNames = Object.keys(this.state.controls).concat(Object.keys(this.state.experiments));
     return (
@@ -42,7 +52,7 @@ var App = React.createClass({
         <TabPanel>
           <GenomeVisualizer genomes={this.state.genomes} displayableMapNames={displayableMapNames}
             displayedInsertionMaps={this.state.displayedInsertionMaps} displayInsertionMap={this.displayInsertionMap}
-            loading={this.state.loading} />
+            removeDisplayedMap={this.removeDisplayedMap} loading={this.state.loading} />
         </TabPanel>
         <TabPanel>
           <FitnessTable genomes={this.state.genomes} experiments={this.state.experiments} />

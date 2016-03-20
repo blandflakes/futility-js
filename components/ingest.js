@@ -143,14 +143,14 @@ var ControlUploader = React.createClass({
   },
   render: function() {
     var genomeOptions = Object.keys(this.props.genomes).sort().map(function(genomeName) {
-      return <option value={genomeName}>{genomeName}</option>;
+      return <option value={genomeName} key={genomeName}>{genomeName}</option>;
     });
     return (
       <div className="controlUploader">
         <h2>Import New Control:</h2>
         <span>Select a genome: </span>
-        <select value={this.state.selectedGenome && this.state.selectedGenome.name} onChange={this.updateSelectedGenome}>
-          { !this.state.selectedGenome && <option selected="true" disabled="disabled"></option> }
+        <select value={this.state.selectedGenome && this.state.selectedGenome.name} onChange={this.updateSelectedGenome} defaultValue="NONE_SELECTED" >
+          { !this.state.selectedGenome && <option value="NONE_SELECTED" disabled="disabled"></option> }
           {genomeOptions}
         </select>
         <br />
@@ -203,14 +203,14 @@ var ExperimentUploader = React.createClass({
   },
   render: function() {
     var controlOptions = Object.keys(this.props.controls).sort().map(function(controlName) {
-      return <option value={controlName}>{controlName}</option>;
+      return <option value={controlName} key={controlName}>{controlName}</option>;
     });
     return (
       <div className="experimentUploader">
         <h2>Import Experiments:</h2>
         <span>Select a control file: </span>
-        <select value={this.state.selectedControl && this.state.selectedControl.name} onChange={this.updateSelectedControl}>
-          { !this.state.selectedControl && <option selected="true" disabled="disabled"></option> }
+        <select value={this.state.selectedControl && this.state.selectedControl.name} onChange={this.updateSelectedControl} defaultValue="NONE_SELECTED" >
+          { !this.state.selectedControl && <option value="NONE_SELECTED" disabled="disabled"></option> }
           {controlOptions}
         </select>
         <br />
@@ -227,17 +227,17 @@ var DataViewer = React.createClass({
   render: function() {
     var genomeRows = Object.keys(this.props.genomes).map(function(genomeName) {
       var boundRemoveGenome = this.props.removeGenome.bind(this, genomeName);
-      return <tr><td>{genomeName}</td><td><button onClick={boundRemoveGenome}>Remove</button></td></tr>;
+      return <tr key={genomeName}><td>{genomeName}</td><td><button onClick={boundRemoveGenome}>Remove</button></td></tr>;
     }.bind(this));
     var controls = this.props.controls;
     var controlRows = Object.keys(controls).map(function(controlName) {
       var boundRemoveControl = this.props.removeControl.bind(this, controlName);
-      return <tr><td>{controlName}</td><td>{controls[controlName].genomeName}</td><td><button onClick={boundRemoveControl}>Remove</button></td></tr>;
+      return <tr key={controlName}><td>{controlName}</td><td>{controls[controlName].genomeName}</td><td><button onClick={boundRemoveControl}>Remove</button></td></tr>;
     }.bind(this));
     var experiments = this.props.experiments;
     var experimentRows = Object.keys(experiments).map(function(experimentName) {
       var boundRemoveExperiment = this.props.removeExperiment.bind(this, experimentName);
-      return <tr><td>{experimentName}</td><td>{experiments[experimentName].controlName}</td><td><button onClick={boundRemoveExperiment}>Remove</button></td></tr>;
+      return <tr key={experimentName}><td>{experimentName}</td><td>{experiments[experimentName].controlName}</td><td><button onClick={boundRemoveExperiment}>Remove</button></td></tr>;
     }.bind(this));
     return (
       <div className="viewData">
