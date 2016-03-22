@@ -1,11 +1,20 @@
+Try this for persisting vizualizer state instead of mess I'm doing with redux:
+http://stackoverflow.com/questions/31352261/how-to-keep-react-component-state-between-mount-unmount
+Also consider it for the fitness table.
+
+http://redux.js.org/docs/basics/UsageWithReact.html
+http://redux.js.org/docs/basics/ExampleTodoList.html
+
 Immediate TODO:
 1) With redux, ensure that removing a dataset removes it from visualizer as well
 1) search for more reusable components
 3) Ingesting multiple experiments at once can kill the machine with threads
-4) All data analysis should probably be done in a web worker.
+4) All data analysis should probably be done in a web worker - what I truly mean here is to take experiment analysis offline sooner.
 1) Add styling around various control entities (buttons, dropdowns, labels)
 1) When changing an organism in the visualizer, get rid of existing graphs
 1) Remove hardcoded organism selection, lazy-init things that rely on it
+1) Better loading messages?
+1) For a better loading experience: http://stackoverflow.com/questions/23555165/loading-message-before-time-consuming-operation-in-react-js
 
 Future TODO:
 1) Create a server that can do the same feature extraction. DELAYED - will revisit with clustering

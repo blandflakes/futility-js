@@ -1,6 +1,37 @@
 import React from 'react';
 import d3 from 'd3';
 
+import { connect } from 'react-redux';
+import { displayDataSet, hangState, initScales, removeDisplayedDataSet, resetDisplayedDataSets } from '../actions/visualizer';
+
+const mapStateToProps = function(state) {
+  return {
+    dataSets: state.ingest.dataSets,
+    dataSetNames: Object.keys(state.ingest.dataSets),
+    genomes: state.ingest.genomes,
+    genomeNames: Object.keys(state.ingest.genomes),
+    scales: state.visualize.scales,
+    visibleDataSetNames: state.visualize.visibleDataSetNames,
+    selectedGenomeName: state.visualize.selectedGenomeName,
+    zoom: state.visualize.zoom
+  };
+}
+
+const mapDispatchToProps = function(dispatch) {
+  return {
+    resetDisplayedDataSets: function() { dispatch(resetDisplayedDataSets()); },
+    initScales: function(scales) { dispatch(initScales(scales)); },
+    displayDataSet: function(dataSetName) { dispatch(displayDataSet(dataSetName)); },
+    removeDisplayedDataSet: function(dataSetName) { dispatch(removeDisplayedDataSet(dataSetName)); },
+    hangState: function(fieldName, value) { dispatch(hangState(fieldName, value)); }
+  };
+}
+
+/*
+ * Props:
+ * scale: d3 scale object
+ * translate: transform attribute for placing the axis
+ */
 var Axis = React.createClass({
   componentDidMount: function() {
     this.renderAxis();
@@ -98,59 +129,79 @@ function visibleItems(mappings, scale) {
   return Array.from(inRange);
 }
 
-export var GenomeVisualizer = React.createClass({
+export var GenomeVisualizer = connect(mapStateToProps, mapDispatchToProps)(React.createClass({
   width: 1000,
   height: 250,
   margin: { top: 10, right: 20, bottom: 50, left: 50 },
   readCeiling: 1000,
   getInitialState: function() {
+    return { selectedDataSetName: null, positionalInput: "", zoom: null };
+  },
+  /*
+   * This kind of sucks. Ideally, this would be limited to this component. However, the tabs
+   * re-initialize this component, so if we want to keep everything as the user left it, we need
+   * to either persist the state in LocalStorage (ew) or raise this state to a higher component (also ew,
+   * but less work).
+   */
+  initScalesAndZoom: function() {
     // initialize scales and zoom for this organism
-    var xScale = d3.scale.linear().domain([0, this.width]).range([0, this.width]);
-    var yScale = d3.scale.linear().domain([0, this.readCeiling]).range([this.height, 0]);
+    // scales can come from hung state if we have been persisted before
+    var xScale, yScale;
+    if (!this.props.scales) {
+      xScale = d3.scale.linear().domain([0, this.width]).range([0, this.width]);
+      yScale = d3.scale.linear().domain([0, this.readCeiling]).range([this.height, 0]);
+      this.props.hangState("scales", { x: xScale, y: yScale });
+    }
+    else {
+      xScale = this.props.scales.x;
+      yScale = this.props.scales.y;
+    }
     var zoom = d3.behavior.zoom().x(xScale).scaleExtent([1, 10]).on("zoom", function() {
       if (xScale.domain()[0] < 0) {
         window.console.log("Detected panning visualization too far to the right. Resetting x domain to [0, width].");
         zoom.translate([zoom.translate()[0] - xScale(0) + xScale.range()[0], zoom.translate()[1]]);
         window.console.log("x domain: " + xScale.domain());
       }
-      else if (xScale.domain()[1] > this.state.maxPosition) {
+      else if (xScale.domain()[1] > this.props.maxPosition) {
         window.console.log("Detected panning visualization too far to the left. Resetting x domain to [longestMapLength, longestMapLength - width]");
-        zoom.translate([zoom.translate()[0] - xScale(this.state.maxPosition) + xScale.range()[1], zoom.translate()[1]]);
+        zoom.translate([zoom.translate()[0] - xScale(this.props.maxPosition) + xScale.range()[1], zoom.translate()[1]]);
         window.console.log("x domain: " + xScale.domain());
       }
       // We never translate the y domain, but we will scale the height.
       yScale.domain([0, this.readCeiling / zoom.scale()]);
       this.forceUpdate();
     }.bind(this));
-    return { selectedInsertionMap: null, positionalInput: "", selectedGenome: null,
-             scales: { x: xScale, y: yScale}, zoom: zoom, maxPosition: 0 };
+    this.props.hangState("zoom", zoom);
   },
-  updateSelectedGenome: function(e) {
+  updateSelectedGenomeName: function(e) {
     var newGenomeName = e.target.value;
-    if (!this.state.selectedGenome || e.target.value !== this.state.selectedGenome.name) {
-      if (this.state.selectedGenome && Object.values(this.props.displayedInsertionMaps).length > 0) {
-        var result = confirm("Change genome and remove all displayed maps?");
-        if (!result) { return; }
-        this.props.resetDisplayedMaps();
+    if (this.props.selectedGenomeName) {
+      if (this.props.selectedGenomeName === newGenomeName) {
+        return;
       }
-
-      var newGenome = this.props.genomes[newGenomeName];
-      this.setState({ selectedGenome: newGenome });
+      else {
+        if (this.props.displayedDataSets.length > 0) {
+          var result = confirm("Change genome and remove all displayed maps?");
+          if (!result) { return; }
+          this.props.resetDisplayedDataSets();
+        }
+      }
     }
+    this.initScalesAndZoom();
+    this.props.hangState("selectedGenomeName", newGenomeName);
   },
-  updateSelectedInsertionMap: function(e) {
-    var map;
-    if (this.props.controls[e.target.value]) {
-      map = this.props.controls[e.target.value];
+  updateSelectedDataSetName: function(e) {
+    this.setState({ selectedDataSetName: e.target.value });
+  },
+  componentWillReceiveProps: function(nextProps) {
+    // If our genome disappeared, get rid of the local state that depends on it
+    if (this.props.selectedGenomeName && !nextProps.genomeNames.includes(this.props.selectedGenomeName)) {
+      this.setState({ selectedGenomeName: null, selectedDataSetName: null });
     }
-    else if (this.props.experiments[e.target.value]) {
-      map = this.props.experiments[e.target.value];
+    // Could have just lost the data set
+    else if (this.state.selectedDataSetName && !nextProps.dataSets[this.state.selectedDataSetName]) {
+      this.setState({ selectedDataSetName: null });
     }
-    else {
-      alert("No data set found with name: " + insertionMapName);
-      return;
-    }
-    this.setState({ selectedInsertionMap: map });
   },
   updatePositionalInput: function(e) {
     this.setState({ positionalInput: e.target.value });
@@ -183,45 +234,46 @@ export var GenomeVisualizer = React.createClass({
         return;
       }
     }
-    this.state.zoom.translate([this.state.zoom.scale() * (0 - targetIndex), 0]);
+    this.props.zoom.translate([this.props.zoom.scale() * (0 - targetIndex), 0]);
     this.forceUpdate();
   },
-  selectedMapAlreadyDisplayed: function() {
-    return this.props.displayedInsertionMaps[this.state.selectedInsertionMap.name];
+  selectedDataSetAlreadyDisplayed: function() {
+    return this.props.visibleDataSetNames.includes(this.state.selectedDataSetName);
   },
-  addInsertionMap: function() {
-    var mapToAdd = this.state.selectedInsertionMap;
-    this.setState({ maxPosition: Math.max(this.state.maxPosition, mapToAdd.backingIgv.stats.maxPosition) });
-    this.props.displayInsertionMap(mapToAdd);
+  addDataSet: function() {
+    var setToAdd = this.props.dataSets[this.state.selectedDataSetName];
+    this.props.hangState("maxPosition", Math.max(this.props.maxPosition, setToAdd.backingIgv.stats.maxPosition) );
+    this.props.displayDataSet(this.state.selectedDataSetName);
   },
   render: function() {
-    var genomeOptions = Object.keys(this.props.genomes).map(function(genomeName) {
+    var genomeOptions = this.props.genomeNames.sort().map(function(genomeName) {
       return <option value={genomeName} key={genomeName}>{genomeName}</option>;
     });
-    var availableMaps;
-    if (this.state.selectedGenome) {
-      availableMaps = Object.values(this.props.controls).concat(Object.values(this.props.experiments)).filter(function(analyzedItem) {
-        return analyzedItem.genomeName === this.state.selectedGenome.name;
-      }.bind(this)).map(function(relatedItem) { return relatedItem.name; });
+    var availableDataSets;
+    if (this.props.selectedGenomeName) {
+      availableDataSets = this.props.dataSetNames.filter(function(dataSetName) {
+        return this.props.dataSets[dataSetName].genomeName === this.props.selectedGenomeName;
+      }.bind(this));
     }
     else {
-      availableMaps = [];
+      availableDataSets = [];
     }
-    var mapOptions = availableMaps.sort().map(function(mapName) {
-      return <option value={mapName} key={mapName}>{mapName}</option>;
+    var mapOptions = availableDataSets.sort().map(function(dataSetName) {
+      return <option value={dataSetName} key={dataSetName}>{dataSetName}</option>;
     });
-    var graphs = Object.values(this.props.displayedInsertionMaps).map(function(displayedMap) {
-      var visibleMappings = visibleItems(displayedMap.heightMappings, this.state.scales.x);
-      var visibleLabels = visibleItems(this.state.selectedGenome.listing, this.state.scales.x);
-      var removeHandler = function() { this.props.removeDisplayedMap(displayedMap.name); }.bind(this);
+    var graphs = this.props.visibleDataSetNames.map(function(displayedSetName) {
+      var displayedSet = this.props.dataSets[displayedSetName];
+      var visibleMappings = visibleItems(displayedSet.heightMappings, this.props.scales.x);
+      var visibleLabels = visibleItems(this.props.genomes[this.props.selectedGenomeName].listing, this.props.scales.x);
+      var removeHandler = function() { this.props.removeDisplayedDataSet(displayedSetName); }.bind(this);
       return (
-        <div className="graphContainer" key={displayedMap.name}>
+        <div className="graphContainer" key={displayedSet.name}>
           <div className="graphHeader">
-            <span>{displayedMap.name}</span>
+            <span>{displayedSet.name}</span>
             <button onClick={removeHandler}>Remove this graph</button>
           </div>
-          <GenomeGraph scales={this.state.scales} width={this.width} height={this.height} margin={this.margin}
-            visibleMappings={visibleMappings} zoom={this.state.zoom} visibleLabels={visibleLabels} />
+          <GenomeGraph scales={this.props.scales} width={this.width} height={this.height} margin={this.margin}
+            visibleMappings={visibleMappings} zoom={this.props.zoom} visibleLabels={visibleLabels} />
         </div>
       );
     }.bind(this));
@@ -229,15 +281,15 @@ export var GenomeVisualizer = React.createClass({
       <div>
         <div className="controlPanel">
           <div className="selectorDiv">
-            <select value={this.state.selectedGenome && this.state.selectedGenome.name} onChange={this.updateSelectedGenome} defaultValue="NONE_SELECTED" >
-              { !this.state.selectedGenome && <option value="NONE_SELECTED" disabled="disabled">Select a Genome</option> }
+            <select value={this.props.selectedGenomeName} onChange={this.updateSelectedGenomeName} defaultValue="NONE_SELECTED" >
+              { !this.props.selectedGenomeName && <option value="NONE_SELECTED" disabled="disabled">Select a Genome</option> }
               {genomeOptions}
             </select>
-            <select onChange={this.updateSelectedInsertionMap} className="insertionMapSelector" defaultValue="NONE_SELECTED" >
-              { !this.state.selectedInsertionMapName && <option value="NONE_SELECTED" disabled="disabled">Select an insertion map</option> }
+            <select onChange={this.updateSelectedDataSetName} className="dataSetNameSelector" defaultValue="NONE_SELECTED" >
+              { !this.state.selectedDataSetName && <option value="NONE_SELECTED" disabled="disabled">Select a data set</option> }
               {mapOptions}
             </select>
-            <button disabled={!this.state.selectedInsertionMap || this.selectedMapAlreadyDisplayed()} onClick={this.addInsertionMap}>Add!</button>
+            <button disabled={!this.state.selectedDataSetName || this.selectedDataSetAlreadyDisplayed()} onClick={this.addDataSet}>Add!</button>
           </div>
           <div className="navigationDiv">
             <span>Enter a gene or position: </span>
@@ -253,4 +305,4 @@ export var GenomeVisualizer = React.createClass({
       </div>
     );
   }
-});
+}));

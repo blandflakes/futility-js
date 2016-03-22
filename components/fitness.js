@@ -1,6 +1,15 @@
 import React from 'react';
 import Griddle from 'griddle-react';
+import { connect } from 'react-redux';
 import { assoc } from 'lib/func';
+
+const mapStateToProps = function(state) {
+  return {
+    genomes: state.ingest.genomes,
+    genomeNames: Object.keys(state.ingest.genomes),
+    experiments: Object.values(state.ingest.dataSets).filter(function(dataSet) { return dataSet.type === "experiment"; })
+  };
+}
 
 // Set up some formatters
 function formattedDecimal(precision) {
@@ -22,7 +31,7 @@ function formattedExponential(precision) {
 var DecimalFormatter = formattedDecimal(5);
 var ExponentialFormatter = formattedExponential(3);
 
-export var FitnessTable = React.createClass({
+export var FitnessTable = connect(mapStateToProps)(React.createClass({
   getInitialState: function() {
     return { selectedGenome: null, selectedGene: null };
   },
@@ -43,7 +52,7 @@ export var FitnessTable = React.createClass({
     this.setState({ selectedGene: this.state.selectedGenome.map[geneName] });
   },
   render: function() {
-    var genomeOptions = Object.keys(this.props.genomes).map(function(genomeName) {
+    var genomeOptions = this.props.genomeNames.map(function(genomeName) {
       return <option value={genomeName} key={genomeName}>{genomeName}</option>;
     });
     var geneOptions;
@@ -58,7 +67,7 @@ export var FitnessTable = React.createClass({
     var experimentFeatures;
     if (this.state.selectedGene) {
       var geneName = this.state.selectedGene.name;
-      experimentFeatures = Object.values(this.props.experiments).map(function(experiment) {
+      experimentFeatures = this.props.experiments.map(function(experiment) {
         var features = experiment.features[geneName];
         return assoc(features, "condition", experiment.name);
       });
@@ -96,4 +105,4 @@ export var FitnessTable = React.createClass({
       </div>
     );
   }
-});
+}));

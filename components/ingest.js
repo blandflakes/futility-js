@@ -1,16 +1,32 @@
 import React from 'react';
+import Loader from 'react-loader';
+import { connect } from 'react-redux';
+import { addDataSets, addGenomes, startLoading, stopLoading } from '../actions/ingest';
 import { basename, readTextFile } from 'lib/files';
 import { analyzeGenome, analyzeControl, analyzeExperiment } from 'lib/analysis';
 
 
-function fileArray(filesObj) {
-  var fileArray = []
-  for (var i = 0; i < filesObj.length; ++i) {
-    fileArray.push(fileList[i]);
-  }
-  return fileArray;
+const mapStateToProps = function(state) {
+  return {
+    loading: state.ingest.loading,
+    genomes: state.ingest.genomes,
+    dataSets: state.ingest.dataSets,
+    genomeNames: Object.keys(state.ingest.genomes),
+    controlNames: Object.keys(state.ingest.dataSets).filter(function(dataSetName) { return state.ingest.dataSets[dataSetName].type === "control"; }),
+    experimentNames: Object.keys(state.ingest.dataSets).filter(function(dataSetName) { return state.ingest.dataSets[dataSetName].type === "experiment"; })
+  };
 }
 
+const mapDispatchToProps = function(dispatch) {
+  return {
+    startLoading: function() { dispatch(startLoading()); },
+    stopLoading: function() { dispatch(stopLoading()); },
+    addGenomes: function(genomeMaps) { dispatch(addGenomes(genomeMaps)); },
+    removeGenome: function(name) { dispatch(removeGenome(name)); },
+    addDataSets: function(dataSets) { dispatch(addDataSets(dataSets)); },
+    removeDataSet: function(name) { dispatch(removeDataset(name)); }
+  };
+}
 
 // properties:
 // readyToImport: external conditions required for import are satisfied
@@ -69,8 +85,23 @@ var TextFilesUploader = React.createClass({
   }
 });
 
+function asyncImportTask(textObjects, analysisCallback, importCallback) {
+  this.props.startLoading();
+  setTimeout(function() {
+    var promises = textObjects.map(analysisCallback);
+    Promise.all(promises).then(function(data) {
+      importCallback(data);
+      this.props.stopLoading();
+    }.bind(this),
+    function(error) {
+      alert("Import failed: " + error);
+      this.props.stopLoading();
+    }.bind(this));
+  }.bind(this), 0);
+}
 
 var GenomeUploader = React.createClass({
+  asyncImportTask: asyncImportTask,
   validateGenomeName: function(filename) {
     var genomeName = basename(filename);
     if (this.props.genomes[genomeName]) {
@@ -79,24 +110,14 @@ var GenomeUploader = React.createClass({
     return { pass: true };
   },
   importGenomes: function(genomeTexts) {
-    this.props.setIsLoading(true);
-    var genomePromises = genomeTexts.map(function(readTextObject) {
-      return analyzeGenome(basename(readTextObject.name), readTextObject.text);
-    });
-    Promise.all(genomePromises).then(function(genomes) {
-      this.props.addGenomes(genomes);
-      this.props.setIsLoading(false);
-    }.bind(this),
-    function(error) {
-      alert("Failed to load genomes: " + error);
-      this.props.setIsLoading(false);
-    }.bind(this));
+    this.asyncImportTask(genomeTexts, function(textObject) { return analyzeGenome(basename(textObject.name), textObject.text); },
+                    this.props.addGenomes);
   },
   render: function() {
     return (
       <div className="genomeUploader">
         <h2>Import New Genome:</h2>
-        <TextFilesUploader readyToImport={!this.props.loading} filenameValidator={this.validateGenomeName} textFilesCallback={this.importGenomes} extensions=".tsv" buttonLabel="Import Genome" />
+        <TextFilesUploader readyToImport={true} filenameValidator={this.validateGenomeName} textFilesCallback={this.importGenomes} extensions=".tsv" buttonLabel="Import Genome" />
       </div>
     );
   }
@@ -104,59 +125,47 @@ var GenomeUploader = React.createClass({
 
 
 var ControlUploader = React.createClass({
+  asyncImportTask: asyncImportTask,
   getInitialState: function() {
-    return { selectedGenome: null };
+    return { selectedGenomeName: null };
   },
   componentWillReceiveProps: function(nextProps) {
     // Just reset the selected genome if it's been removed
-    if (this.state.selectedGenome && !nextProps.genomes[this.state.selectedGenome.name]) {
-      this.setState({ selectedGenome: null});
+    if (this.state.selectedGenomeName && !nextProps.genomes[this.state.selectedGenomeName]) {
+      this.setState({ selectedGenomeName: null});
     }
   },
   validateControlName: function(filename) {
     var controlName = basename(filename);
-    if (this.props.controls[controlName]) {
-      return { pass: false, reason: "Cannot overwrite control with name '" + controlName + "'" };
-    }
-    else if (this.props.experiments[controlName]) {
-      return { pass: false, reason: "Experiment already exists with name '" + controlName + "'" };
+    if (this.props.dataSets[controlName]) {
+      return { pass: false, reason: "Cannot overwrite data set with name '" + controlName + "'"};
     }
     return { pass: true };
   },
-  updateSelectedGenome: function(e) {
-    this.setState({ selectedGenome: this.props.genomes[e.target.value] });
+  updateSelectedGenomeName: function(e) {
+    this.setState({ selectedGenomeName: e.target.value });
   },
   importControls: function(controlTexts) {
-    this.props.setIsLoading(true);
-    var genome = this.state.selectedGenome;
-    var controlPromises = controlTexts.map(function(readTextObject) {
-      return analyzeControl(basename(readTextObject.name), genome.name, readTextObject.text);
-    });
-    Promise.all(controlPromises).then(function(controls) {
-      this.props.addControls(controls);
-      this.props.setIsLoading(false);
-    }.bind(this),
-    function(error) {
-      alert("Error loading controls: " + error);
-      this.props.setIsLoading(false);
-    }.bind(this));
+    var genomeName = this.state.selectedGenomeName;
+    this.asyncImportTask(controlTexts, function(textObject) { return analyzeControl(basename(textObject.name), genomeName, textObject.text); },
+                         this.props.addDataSets);
   },
   render: function() {
-    var genomeOptions = Object.keys(this.props.genomes).sort().map(function(genomeName) {
+    var genomeOptions = this.props.genomeNames.sort().map(function(genomeName) {
       return <option value={genomeName} key={genomeName}>{genomeName}</option>;
     });
     return (
       <div className="controlUploader">
         <h2>Import New Control:</h2>
         <span>Genome: </span>
-        <select value={this.state.selectedGenome && this.state.selectedGenome.name} onChange={this.updateSelectedGenome} defaultValue="NONE_SELECTED" >
-          { !this.state.selectedGenome && <option value="NONE_SELECTED" disabled="disabled">Select a genome</option> }
+        <select value={this.state.selectedGenomeName} onChange={this.updateSelectedGenomeName} defaultValue="NONE_SELECTED" >
+          { !this.state.selectedGenomeName && <option value="NONE_SELECTED" disabled="disabled">Select a genome</option> }
           {genomeOptions}
         </select>
         <br />
         <span>Select a control file:</span>
         <br />
-        <TextFilesUploader readyToImport={!this.props.loading && this.state.selectedGenome} filenameValidator={this.validateControlName} textFilesCallback={this.importControls} extensions=".igv" buttonLabel="Import Controls"/>
+        <TextFilesUploader readyToImport={this.state.selectedGenomeName} filenameValidator={this.validateControlName} textFilesCallback={this.importControls} extensions=".igv" buttonLabel="Import Controls"/>
       </div>
     );
   }
@@ -164,59 +173,47 @@ var ControlUploader = React.createClass({
 
 
 var ExperimentUploader = React.createClass({
+  asyncImportTask: asyncImportTask,
   getInitialState: function() {
-    return { selectedControl: null };
+    return { selectedControlName: null };
   },
   componentWillReceiveProps: function(nextProps) {
-    if (this.state.selectedControl && !nextProps.controls[this.state.selectedControl.name]) {
-      this.setState({ selectedControl: null });
+    if (this.state.selectedControlName && !nextProps.controlNames.include(this.state.selectedControlName)) {
+      this.setState({ selectedControlName: null });
     }
   },
-  updateSelectedControl: function(e) {
-    this.setState({ selectedControl: this.props.controls[e.target.value] });
+  updateSelectedControlName: function(e) {
+    this.setState({ selectedControlName: e.target.value });
   },
   validateExperimentName: function(filename) {
     var experimentName = basename(filename);
-    if (this.props.experiments[experimentName]) {
-      return { pass: false, reason: "Cannot overwrite experiment with name '" + experimentName + "'" };
-    }
-    else if (this.props.controls[experimentName]) {
-      return { pass: false, reason: "Control already exists with name '" + experimentName + "'" };
+    if (this.props.dataSets[experimentName]) {
+      return { pass: false, reason: "Cannot overwrite data set with name '" + experimentName + "'"};
     }
     return { pass: true };
   },
   importExperiments: function(experimentTexts) {
-    this.props.setIsLoading(true);
-    var control = this.state.selectedControl;
+    var control = this.props.dataSets[this.state.selectedControlName];
     var genome = this.props.genomes[control.genomeName];
-    var experimentPromises = experimentTexts.map(function(readTextObject) {
-      return analyzeExperiment(basename(readTextObject.name), genome, control, readTextObject.text);
-    });
-    Promise.all(experimentPromises).then(function(experiments) {
-      this.props.addExperiments(experiments);
-      this.props.setIsLoading(false);
-    }.bind(this),
-    function(error) {
-      alert("Error loading experiments: " + error)
-      this.props.setIsLoading(false);
-    }.bind(this));
+    this.asyncImportTask(experimentTexts, function(textObject) { return analyzeExperiment(basename(textObject.name), genome, control, textObject.text); },
+                         this.props.addDataSets);
   },
   render: function() {
-    var controlOptions = Object.keys(this.props.controls).sort().map(function(controlName) {
+    var controlOptions = this.props.controlNames.sort().map(function(controlName) {
       return <option value={controlName} key={controlName}>{controlName}</option>;
     });
     return (
       <div className="experimentUploader">
         <h2>Import Experiments:</h2>
         <span>Control file: </span>
-        <select value={this.state.selectedControl && this.state.selectedControl.name} onChange={this.updateSelectedControl} defaultValue="NONE_SELECTED" >
-          { !this.state.selectedControl && <option value="NONE_SELECTED" disabled="disabled">Select a control file</option> }
+        <select value={this.state.selectedControlName} onChange={this.updateSelectedControlName} defaultValue="NONE_SELECTED" >
+          { !this.state.selectedControlName && <option value="NONE_SELECTED" disabled="disabled">Select a control file</option> }
           {controlOptions}
         </select>
         <br />
         <span>Select experiment files: </span>
         <br />
-        <TextFilesUploader readyToImport={!this.props.loading && this.state.selectedControl} filenameValidator={this.validateExperimentName} textFilesCallback={this.importExperiments} extensions=".igv" buttonLabel="Import Data"/>
+        <TextFilesUploader readyToImport={this.state.selectedControlName} filenameValidator={this.validateExperimentName} textFilesCallback={this.importExperiments} extensions=".igv" buttonLabel="Import Data"/>
       </div>
     );
   }
@@ -225,19 +222,17 @@ var ExperimentUploader = React.createClass({
 
 var DataViewer = React.createClass({
   render: function() {
-    var genomeRows = Object.keys(this.props.genomes).map(function(genomeName) {
+    var genomeRows = this.props.genomeNames.map(function(genomeName) {
       var boundRemoveGenome = this.props.removeGenome.bind(this, genomeName);
       return <tr key={genomeName}><td>{genomeName}</td><td><button onClick={boundRemoveGenome}>Remove</button></td></tr>;
     }.bind(this));
-    var controls = this.props.controls;
-    var controlRows = Object.keys(controls).map(function(controlName) {
-      var boundRemoveControl = this.props.removeControl.bind(this, controlName);
-      return <tr key={controlName}><td>{controlName}</td><td>{controls[controlName].genomeName}</td><td><button onClick={boundRemoveControl}>Remove</button></td></tr>;
+    var controlRows = this.props.controlNames.map(function(controlName) {
+      var boundRemoveControl = this.props.removeDataSet.bind(this, controlName);
+      return <tr key={controlName}><td>{controlName}</td><td>{this.props.dataSets[controlName].genomeName}</td><td><button onClick={boundRemoveControl}>Remove</button></td></tr>;
     }.bind(this));
-    var experiments = this.props.experiments;
-    var experimentRows = Object.keys(experiments).map(function(experimentName) {
-      var boundRemoveExperiment = this.props.removeExperiment.bind(this, experimentName);
-      return <tr key={experimentName}><td>{experimentName}</td><td>{experiments[experimentName].controlName}</td><td><button onClick={boundRemoveExperiment}>Remove</button></td></tr>;
+    var experimentRows = this.props.experimentNames.map(function(experimentName) {
+      var boundRemoveExperiment = this.props.removeDataSet.bind(this, experimentName);
+      return <tr key={experimentName}><td>{experimentName}</td><td>{this.props.dataSets[experimentName].controlName}</td><td><button onClick={boundRemoveExperiment}>Remove</button></td></tr>;
     }.bind(this));
     return (
       <div className="viewData">
@@ -284,27 +279,31 @@ var DataViewer = React.createClass({
 });
 
 
-export var IngestDataInterface = React.createClass({
+export const IngestDataInterface = connect(mapStateToProps, mapDispatchToProps)(React.createClass({
   render: function() {
     return (
       <div>
-        <div className="ingestData">
-          <h1>Manage Data Sets</h1>
-          { this.props.loading && <h2>Please wait, loading...</h2> }
-          <GenomeUploader addGenomes={this.props.actions.addGenomes} genomes={this.props.genomes}
-            loading={this.props.loading} setIsLoading={this.props.actions.setIsLoading} />
-          <ControlUploader addControls={this.props.actions.addControls} genomes={this.props.genomes}
-            controls={this.props.controls} experiments={this.props.experiments} loading={this.props.loading}
-            setIsLoading={this.props.actions.setIsLoading} />
-          <br />
-          <ExperimentUploader addExperiments={this.props.actions.addExperiments} genomes={this.props.genomes}
-            controls={this.props.controls} experiments={this.props.experiments} loading={this.props.loading}
-            setIsLoading={this.props.actions.setIsLoading} />
-        </div>
-        <DataViewer genomes={this.props.genomes} controls={this.props.controls}
-          experiments={this.props.experiments} removeGenome={this.props.actions.removeGenome}
-          removeControl={this.props.actions.removeControl} removeExperiment={this.props.actions.removeExperiment} />
+        <Loader loaded={!this.props.loading}>
+          <div className="ingestData">
+            <h1>Manage Data Sets</h1>
+            <GenomeUploader addGenomes={this.props.addGenomes} genomes={this.props.genomes}
+              startLoading={this.props.startLoading} stopLoading={this.props.stopLoading}
+              />
+            <ControlUploader addDataSets={this.props.addDataSets} genomeNames={this.props.genomeNames}
+              startLoading={this.props.startLoading} stopLoading={this.props.stopLoading} dataSets={this.props.dataSets}
+              />
+            <br />
+            <ExperimentUploader addDataSets={this.props.addDataSets} genomes={this.props.genomes}
+              controlNames={this.props.controlNames} startLoading={this.props.startLoading} stopLoading={this.props.stopLoading}
+              dataSets={this.props.dataSets}
+              />
+          </div>
+          <DataViewer genomeNames={this.props.genomeNames} controlNames={this.props.controlNames} dataSets={this.props.dataSets}
+            experimentNames={this.props.experimentNames} removeGenome={this.props.removeGenome}
+            removeDataSet={this.props.removeDataSet} />
+        </Loader>
       </div>
     );
   }
-});
+}));
+
