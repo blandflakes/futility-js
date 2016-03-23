@@ -1,7 +1,7 @@
 import React from 'react';
 import Griddle from 'griddle-react';
 import { connect } from 'react-redux';
-import { assoc } from 'lib/func';
+import { assoc, assocAll } from 'lib/func';
 
 const mapStateToProps = function(state) {
   return {
@@ -33,40 +33,48 @@ var ExponentialFormatter = formattedExponential(3);
 
 var state = null;
 export var FitnessTable = connect(mapStateToProps)(React.createClass({
+  updateStateToProps: function(state) {
+    var newSelectedGenomeName = state.selectedGenomeName;
+    var newSelectedGeneName = state.selectedGeneName;
+    // If the genome has been removed, unselect everything
+    if (state.selectedGenomeName) {
+      if (!this.props.genomes[state.selectedGenomeName]) {
+        newSelectedGenomeName = null;
+        newSelectedGeneName = null;
+      }
+      // Ok, the genome is still valid. How about the gene?
+      else {
+        if (state.selectedGeneName && !this.props.genomes[state.selectedGenomeName].map[state.selectedGeneName]) {
+          newSelectedGeneName = null;
+        }
+      }
+    }
+    return assocAll(state, ["selectedGenomeName", "selectedGeneName"], [newSelectedGenomeName, newSelectedGeneName]);
+  },
   getInitialState: function() {
     if (state) {
-      return state;
+      return this.updateStateToProps(state);
     }
     else {
-      return { selectedGenome: null, selectedGene: null };
+      return { selectedGenomeName: null, selectedGeneName: null };
     }
   },
   componentWillUnmount: function() {
     state = this.state;
   },
-  updateSelectedGenome: function(e) {
-    this.setState({ selectedGenome: this.props.genomes[e.target.value] });
+  updateSelectedGenomeName: function(e) {
+    this.setState({ selectedGenomeName: e.target.value });
   },
-  componentWillReceiveProps: function(nextProps) {
-    if (this.state.selectedGenome && !nextProps.genomes[this.state.selectedGenome.name]) {
-      this.setState(getInitialState());
-    }
-    // Could also have the genome but not the gene
-    if (this.state.selectedGene && !this.state.selectedGenome.map[this.state.selectedGene.name]) {
-      this.setState({ selectedGene: null });
-    }
-  },
-  updateSelectedGene: function(e) {
-    var geneName = e.target.value;
-    this.setState({ selectedGene: this.state.selectedGenome.map[geneName] });
+  updateSelectedGeneName: function(e) {
+    this.setState({ selectedGeneName: e.target.value });
   },
   render: function() {
     var genomeOptions = this.props.genomeNames.map(function(genomeName) {
       return <option value={genomeName} key={genomeName}>{genomeName}</option>;
     });
     var geneOptions;
-    if (this.state.selectedGenome) {
-      geneOptions = Object.keys(this.state.selectedGenome.map).map(function(geneName) {
+    if (this.state.selectedGenomeName) {
+      geneOptions = Object.keys(this.props.genomes[this.state.selectedGenomeName].map).map(function(geneName) {
         return <option value={geneName} key={geneName}>{geneName}</option>;
       });
     }
@@ -74,24 +82,23 @@ export var FitnessTable = connect(mapStateToProps)(React.createClass({
       geneOptions = null;
     }
     var experimentFeatures;
-    if (this.state.selectedGene) {
-      var geneName = this.state.selectedGene.name;
+    if (this.state.selectedGeneName) {
       experimentFeatures = this.props.experiments.map(function(experiment) {
-        var features = experiment.features[geneName];
+        var features = experiment.features[this.state.selectedGeneName];
         return assoc(features, "condition", experiment.name);
-      });
+      }.bind(this));
     }
     else {
       experimentFeatures = null;
     }
     return (
       <div>
-        <select value={this.state.selectedGenome && this.state.selectedGenome.name} onChange={this.updateSelectedGenome} defaultValue="NONE_SELECTED" >
-          { !this.state.selectedGenome && <option value="NONE_SELECTED" disabled="disabled">Select a Genome</option> }
+        <select value={this.state.selectedGenomeName} onChange={this.updateSelectedGenomeName} defaultValue="NONE_SELECTED" >
+          { !this.state.selectedGenomeName && <option value="NONE_SELECTED" disabled="disabled">Select a Genome</option> }
           {genomeOptions}
         </select>
-        <select value={this.state.selectedGene && this.state.selectedGene.name} onChange={this.updateSelectedGene} defaultValue="NONE_SELECTED" >
-          { !this.state.selectedGene && <option value="NONE_SELECTED" disabled="disabled">Select a Gene</option> }
+        <select value={this.state.selectedGeneName} onChange={this.updateSelectedGeneName} defaultValue="NONE_SELECTED" >
+          { !this.state.selectedGeneName && <option value="NONE_SELECTED" disabled="disabled">Select a Gene</option> }
           {geneOptions}
         </select>
         { experimentFeatures &&

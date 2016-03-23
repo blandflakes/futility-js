@@ -1,4 +1,4 @@
-import { assoc, assocAll } from 'lib/func';
+import { assoc, assocAll, dissoc, dissocAll } from 'lib/func';
 
 const initialState = {
   loading: false,

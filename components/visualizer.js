@@ -3,6 +3,8 @@ import d3 from 'd3';
 
 import { connect } from 'react-redux';
 
+import { assocAll } from 'lib/func';
+
 const mapStateToProps = function(state) {
   return {
     dataSets: state.dataSets,
@@ -142,7 +144,7 @@ export var GenomeVisualizer = connect(mapStateToProps)(React.createClass({
   readCeiling: 1000,
   getInitialState: function() {
     if (state) {
-      return state;
+      return this.updateStateToProps(state);
     }
     else {
       var xScale = d3.scale.linear().domain([0, this.width]).range([0, this.width]);
@@ -151,6 +153,26 @@ export var GenomeVisualizer = connect(mapStateToProps)(React.createClass({
       return { selectedDataSetName: null, positionalInput: "", scales: { x: xScale, y: yScale }, maxPosition: 0, zoom: zoom,
                selectedGenomeName: null, displayedDataSetNames: []};
     }
+  },
+  updateStateToProps: function(state) {
+    var newSelectedGenomeName = state.selectedGenomeName;
+    var newSelectedDataSetName = state.selectedDataSetName;
+    var newDisplayedDataSetNames;
+    // If our genome disappeared, get rid of the local state that depends on it
+    if (state.selectedGenomeName && !this.props.genomeNames.includes(state.selectedGenomeName)) {
+      newSelectedGenomeName = null;
+      newSelectedDataSetName = null;
+    }
+    // Could have just lost the data set we had selected
+    else if (state.selectedDataSetName && !this.props.dataSets[state.selectedDataSetName]) {
+      newSelectedDataSetName = null;
+    }
+    // Also, need to filter out any data sets that no longer exist
+    newDisplayedDataSetNames = state.displayedDataSetNames.filter(function(dataSetName) {
+      return this.props.dataSets[dataSetName];
+    }.bind(this));
+    return assocAll(state, ["selectedGenomeName", "selectedDataSetName", "displayedDataSetNames"],
+                    [newSelectedGenomeName, newSelectedDataSetName, newDisplayedDataSetNames]);
   },
   componentWillUnmount: function() {
     state = this.state;
@@ -170,16 +192,6 @@ export var GenomeVisualizer = connect(mapStateToProps)(React.createClass({
   },
   updateSelectedDataSetName: function(e) {
     this.setState({ selectedDataSetName: e.target.value });
-  },
-  componentWillReceiveProps: function(nextProps) {
-    // If our genome disappeared, get rid of the local state that depends on it
-    if (this.state.selectedGenomeName && !nextProps.genomeNames.includes(this.state.selectedGenomeName)) {
-      this.setState({ selectedGenomeName: null, selectedDataSetName: null });
-    }
-    // Could have just lost the data set
-    else if (this.state.selectedDataSetName && !nextProps.dataSets[this.state.selectedDataSetName]) {
-      this.setState({ selectedDataSetName: null });
-    }
   },
   updatePositionalInput: function(e) {
     this.setState({ positionalInput: e.target.value });

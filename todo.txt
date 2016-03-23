@@ -8,6 +8,9 @@ datum is singular, data is plural. Fix this everywhere.
 total number of reads for each item in the vizualizer
 add index
 remote data set (password, file download)
+test removing data sets
+linter
+modified ratio can be NaN
 
 Future TODO:
 1) Create a server that can do the same feature extraction. DELAYED - will revisit with clustering

@@ -1,7 +1,7 @@
 import React from 'react';
 import Loader from 'react-loader';
 import { connect } from 'react-redux';
-import { addDataSets, addGenomes, startLoading, stopLoading } from '../actions/ingest';
+import { addDataSets, addGenomes, startLoading, stopLoading, removeDataSet, removeGenome } from '../actions/ingest';
 import { basename, readTextFile } from 'lib/files';
 import { analyzeGenome, analyzeControl, analyzeExperiment } from 'lib/analysis';
 
@@ -24,7 +24,7 @@ const mapDispatchToProps = function(dispatch) {
     addGenomes: function(genomeMaps) { dispatch(addGenomes(genomeMaps)); },
     removeGenome: function(name) { dispatch(removeGenome(name)); },
     addDataSets: function(dataSets) { dispatch(addDataSets(dataSets)); },
-    removeDataSet: function(name) { dispatch(removeDataset(name)); }
+    removeDataSet: function(name) { dispatch(removeDataSet(name)); }
   };
 }
 
