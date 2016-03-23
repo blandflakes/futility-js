@@ -2,19 +2,17 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 
 import { Provider } from 'react-redux';
-import { combineReducers, createStore } from 'redux';
+import { createStore } from 'redux';
 
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 
 import { ingest } from 'reducers/ingest';
-import { visualize } from 'reducers/visualizer.js';
 
 import { FitnessTable } from 'components/fitness';
 import { IngestDataInterface } from 'components/ingest';
 import { GenomeVisualizer } from 'components/visualizer';
 
-var reducers = combineReducers({ingest, visualize});
-var store = createStore(reducers);
+var store = createStore(ingest);
 
 var App = React.createClass({
   render: function() {

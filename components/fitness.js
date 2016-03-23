@@ -5,9 +5,9 @@ import { assoc } from 'lib/func';
 
 const mapStateToProps = function(state) {
   return {
-    genomes: state.ingest.genomes,
-    genomeNames: Object.keys(state.ingest.genomes),
-    experiments: Object.values(state.ingest.dataSets).filter(function(dataSet) { return dataSet.type === "experiment"; })
+    genomes: state.genomes,
+    genomeNames: Object.keys(state.genomes),
+    experiments: Object.values(state.dataSets).filter(function(dataSet) { return dataSet.type === "experiment"; })
   };
 }
 
@@ -31,9 +31,18 @@ function formattedExponential(precision) {
 var DecimalFormatter = formattedDecimal(5);
 var ExponentialFormatter = formattedExponential(3);
 
+var state = null;
 export var FitnessTable = connect(mapStateToProps)(React.createClass({
   getInitialState: function() {
-    return { selectedGenome: null, selectedGene: null };
+    if (state) {
+      return state;
+    }
+    else {
+      return { selectedGenome: null, selectedGene: null };
+    }
+  },
+  componentWillUnmount: function() {
+    state = this.state;
   },
   updateSelectedGenome: function(e) {
     this.setState({ selectedGenome: this.props.genomes[e.target.value] });

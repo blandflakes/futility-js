@@ -8,12 +8,12 @@ import { analyzeGenome, analyzeControl, analyzeExperiment } from 'lib/analysis';
 
 const mapStateToProps = function(state) {
   return {
-    loading: state.ingest.loading,
-    genomes: state.ingest.genomes,
-    dataSets: state.ingest.dataSets,
-    genomeNames: Object.keys(state.ingest.genomes),
-    controlNames: Object.keys(state.ingest.dataSets).filter(function(dataSetName) { return state.ingest.dataSets[dataSetName].type === "control"; }),
-    experimentNames: Object.keys(state.ingest.dataSets).filter(function(dataSetName) { return state.ingest.dataSets[dataSetName].type === "experiment"; })
+    loading: state.loading,
+    genomes: state.genomes,
+    dataSets: state.dataSets,
+    genomeNames: Object.keys(state.genomes),
+    controlNames: Object.keys(state.dataSets).filter(function(dataSetName) { return state.dataSets[dataSetName].type === "control"; }),
+    experimentNames: Object.keys(state.dataSets).filter(function(dataSetName) { return state.dataSets[dataSetName].type === "experiment"; })
   };
 }
 

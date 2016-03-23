@@ -2,28 +2,13 @@ import React from 'react';
 import d3 from 'd3';
 
 import { connect } from 'react-redux';
-import { displayDataSet, hangState, initScales, removeDisplayedDataSet, resetDisplayedDataSets } from '../actions/visualizer';
 
 const mapStateToProps = function(state) {
   return {
-    dataSets: state.ingest.dataSets,
-    dataSetNames: Object.keys(state.ingest.dataSets),
-    genomes: state.ingest.genomes,
-    genomeNames: Object.keys(state.ingest.genomes),
-    scales: state.visualize.scales,
-    visibleDataSetNames: state.visualize.visibleDataSetNames,
-    selectedGenomeName: state.visualize.selectedGenomeName,
-    zoom: state.visualize.zoom
-  };
-}
-
-const mapDispatchToProps = function(dispatch) {
-  return {
-    resetDisplayedDataSets: function() { dispatch(resetDisplayedDataSets()); },
-    initScales: function(scales) { dispatch(initScales(scales)); },
-    displayDataSet: function(dataSetName) { dispatch(displayDataSet(dataSetName)); },
-    removeDisplayedDataSet: function(dataSetName) { dispatch(removeDisplayedDataSet(dataSetName)); },
-    hangState: function(fieldName, value) { dispatch(hangState(fieldName, value)); }
+    dataSets: state.dataSets,
+    dataSetNames: Object.keys(state.dataSets),
+    genomes: state.genomes,
+    genomeNames: Object.keys(state.genomes),
   };
 }
 
@@ -129,73 +114,66 @@ function visibleItems(mappings, scale) {
   return Array.from(inRange);
 }
 
-export var GenomeVisualizer = connect(mapStateToProps, mapDispatchToProps)(React.createClass({
+var state = null;
+
+function bindZoom(xScale, yScale, self) {
+  var zoom = d3.behavior.zoom().x(xScale).scaleExtent([1, 10]).on("zoom", function() {
+    if (xScale.domain()[0] < 0) {
+      window.console.log("Detected panning visualization too far to the right. Resetting x domain to [0, width].");
+      zoom.translate([zoom.translate()[0] - xScale(0) + xScale.range()[0], zoom.translate()[1]]);
+      window.console.log("x domain: " + xScale.domain());
+    }
+    else if (xScale.domain()[1] > this.state.maxPosition) {
+      window.console.log("Detected panning visualization too far to the left. Resetting x domain to [longestMapLength, longestMapLength - width]");
+      zoom.translate([zoom.translate()[0] - xScale(this.state.maxPosition) + xScale.range()[1], zoom.translate()[1]]);
+      window.console.log("x domain: " + xScale.domain());
+    }
+    // We never translate the y domain, but we will scale the height.
+    yScale.domain([0, this.readCeiling / zoom.scale()]);
+    this.forceUpdate();
+  }.bind(self));
+  return zoom;
+}
+
+export var GenomeVisualizer = connect(mapStateToProps)(React.createClass({
   width: 1000,
   height: 250,
   margin: { top: 10, right: 20, bottom: 50, left: 50 },
   readCeiling: 1000,
   getInitialState: function() {
-    return { selectedDataSetName: null, positionalInput: "", zoom: null };
-  },
-  /*
-   * This kind of sucks. Ideally, this would be limited to this component. However, the tabs
-   * re-initialize this component, so if we want to keep everything as the user left it, we need
-   * to either persist the state in LocalStorage (ew) or raise this state to a higher component (also ew,
-   * but less work).
-   */
-  initScalesAndZoom: function() {
-    // initialize scales and zoom for this organism
-    // scales can come from hung state if we have been persisted before
-    var xScale, yScale;
-    if (!this.props.scales) {
-      xScale = d3.scale.linear().domain([0, this.width]).range([0, this.width]);
-      yScale = d3.scale.linear().domain([0, this.readCeiling]).range([this.height, 0]);
-      this.props.hangState("scales", { x: xScale, y: yScale });
+    if (state) {
+      return state;
     }
     else {
-      xScale = this.props.scales.x;
-      yScale = this.props.scales.y;
+      var xScale = d3.scale.linear().domain([0, this.width]).range([0, this.width]);
+      var yScale = d3.scale.linear().domain([0, this.readCeiling]).range([this.height, 0]);
+      var zoom = bindZoom(xScale, yScale, this);
+      return { selectedDataSetName: null, positionalInput: "", scales: { x: xScale, y: yScale }, maxPosition: 0, zoom: zoom,
+               selectedGenomeName: null, displayedDataSetNames: []};
     }
-    var zoom = d3.behavior.zoom().x(xScale).scaleExtent([1, 10]).on("zoom", function() {
-      if (xScale.domain()[0] < 0) {
-        window.console.log("Detected panning visualization too far to the right. Resetting x domain to [0, width].");
-        zoom.translate([zoom.translate()[0] - xScale(0) + xScale.range()[0], zoom.translate()[1]]);
-        window.console.log("x domain: " + xScale.domain());
-      }
-      else if (xScale.domain()[1] > this.props.maxPosition) {
-        window.console.log("Detected panning visualization too far to the left. Resetting x domain to [longestMapLength, longestMapLength - width]");
-        zoom.translate([zoom.translate()[0] - xScale(this.props.maxPosition) + xScale.range()[1], zoom.translate()[1]]);
-        window.console.log("x domain: " + xScale.domain());
-      }
-      // We never translate the y domain, but we will scale the height.
-      yScale.domain([0, this.readCeiling / zoom.scale()]);
-      this.forceUpdate();
-    }.bind(this));
-    this.props.hangState("zoom", zoom);
+  },
+  componentWillUnmount: function() {
+    state = this.state;
   },
   updateSelectedGenomeName: function(e) {
     var newGenomeName = e.target.value;
-    if (this.props.selectedGenomeName) {
-      if (this.props.selectedGenomeName === newGenomeName) {
-        return;
-      }
-      else {
-        if (this.props.displayedDataSets.length > 0) {
-          var result = confirm("Change genome and remove all displayed maps?");
-          if (!result) { return; }
-          this.props.resetDisplayedDataSets();
-        }
+    if (this.state.selectedGenomeName === newGenomeName) {
+      return;
+    }
+    if (this.state.selectedGenomeName) {
+      if (this.state.displayedDataSetNames.length > 0) {
+        var result = confirm("Change genome and remove all displayed maps?");
+        if (!result) { return; }
       }
     }
-    this.initScalesAndZoom();
-    this.props.hangState("selectedGenomeName", newGenomeName);
+    this.setState({ selectedGenomeName: newGenomeName, displayedDataSetNames: [] });
   },
   updateSelectedDataSetName: function(e) {
     this.setState({ selectedDataSetName: e.target.value });
   },
   componentWillReceiveProps: function(nextProps) {
     // If our genome disappeared, get rid of the local state that depends on it
-    if (this.props.selectedGenomeName && !nextProps.genomeNames.includes(this.props.selectedGenomeName)) {
+    if (this.state.selectedGenomeName && !nextProps.genomeNames.includes(this.state.selectedGenomeName)) {
       this.setState({ selectedGenomeName: null, selectedDataSetName: null });
     }
     // Could have just lost the data set
@@ -213,7 +191,7 @@ export var GenomeVisualizer = connect(mapStateToProps, mapDispatchToProps)(React
     var targetIndex;
     if (isNaN(target)) {
       // Hopefully a string label.
-      var map = this.state.selectedGenome.map;
+      var map = this.props.genomes[this.state.selectedGenomeName].map;
       var label = map[target];
       if (exists(label)) {
         targetIndex = (label.start + label.end) / 2;
@@ -234,25 +212,29 @@ export var GenomeVisualizer = connect(mapStateToProps, mapDispatchToProps)(React
         return;
       }
     }
-    this.props.zoom.translate([this.props.zoom.scale() * (0 - targetIndex), 0]);
+    this.state.zoom.translate([this.state.zoom.scale() * (0 - targetIndex), 0]);
     this.forceUpdate();
   },
   selectedDataSetAlreadyDisplayed: function() {
-    return this.props.visibleDataSetNames.includes(this.state.selectedDataSetName);
+    return this.state.displayedDataSetNames.includes(this.state.selectedDataSetName);
   },
   addDataSet: function() {
     var setToAdd = this.props.dataSets[this.state.selectedDataSetName];
-    this.props.hangState("maxPosition", Math.max(this.props.maxPosition, setToAdd.backingIgv.stats.maxPosition) );
-    this.props.displayDataSet(this.state.selectedDataSetName);
+    var newMaxPosition = Math.max(this.state.maxPosition, setToAdd.backingIgv.stats.maxPosition);
+    var newDataSets = this.state.displayedDataSetNames.concat([setToAdd.name]);
+    this.setState({ maxPosition: newMaxPosition, displayedDataSetNames: newDataSets });
+  },
+  removeDisplayedDataSet: function(nameToRemove) {
+    this.setState({ visibleDataSetNames: this.state.visibleDataSetNames.filter(function(setName) { return setName !== nameToRemove; }) });
   },
   render: function() {
     var genomeOptions = this.props.genomeNames.sort().map(function(genomeName) {
       return <option value={genomeName} key={genomeName}>{genomeName}</option>;
     });
     var availableDataSets;
-    if (this.props.selectedGenomeName) {
+    if (this.state.selectedGenomeName) {
       availableDataSets = this.props.dataSetNames.filter(function(dataSetName) {
-        return this.props.dataSets[dataSetName].genomeName === this.props.selectedGenomeName;
+        return this.props.dataSets[dataSetName].genomeName === this.state.selectedGenomeName;
       }.bind(this));
     }
     else {
@@ -261,19 +243,19 @@ export var GenomeVisualizer = connect(mapStateToProps, mapDispatchToProps)(React
     var mapOptions = availableDataSets.sort().map(function(dataSetName) {
       return <option value={dataSetName} key={dataSetName}>{dataSetName}</option>;
     });
-    var graphs = this.props.visibleDataSetNames.map(function(displayedSetName) {
+    var graphs = this.state.displayedDataSetNames.map(function(displayedSetName) {
       var displayedSet = this.props.dataSets[displayedSetName];
-      var visibleMappings = visibleItems(displayedSet.heightMappings, this.props.scales.x);
-      var visibleLabels = visibleItems(this.props.genomes[this.props.selectedGenomeName].listing, this.props.scales.x);
-      var removeHandler = function() { this.props.removeDisplayedDataSet(displayedSetName); }.bind(this);
+      var visibleMappings = visibleItems(displayedSet.heightMappings, this.state.scales.x);
+      var visibleLabels = visibleItems(this.props.genomes[this.state.selectedGenomeName].listing, this.state.scales.x);
+      var removeHandler = function() { this.removeDisplayedDataSet(displayedSetName); }.bind(this);
       return (
         <div className="graphContainer" key={displayedSet.name}>
           <div className="graphHeader">
             <span>{displayedSet.name}</span>
             <button onClick={removeHandler}>Remove this graph</button>
           </div>
-          <GenomeGraph scales={this.props.scales} width={this.width} height={this.height} margin={this.margin}
-            visibleMappings={visibleMappings} zoom={this.props.zoom} visibleLabels={visibleLabels} />
+          <GenomeGraph scales={this.state.scales} width={this.width} height={this.height} margin={this.margin}
+            visibleMappings={visibleMappings} zoom={this.state.zoom} visibleLabels={visibleLabels} />
         </div>
       );
     }.bind(this));
@@ -281,8 +263,8 @@ export var GenomeVisualizer = connect(mapStateToProps, mapDispatchToProps)(React
       <div>
         <div className="controlPanel">
           <div className="selectorDiv">
-            <select value={this.props.selectedGenomeName} onChange={this.updateSelectedGenomeName} defaultValue="NONE_SELECTED" >
-              { !this.props.selectedGenomeName && <option value="NONE_SELECTED" disabled="disabled">Select a Genome</option> }
+            <select value={this.state.selectedGenomeName} onChange={this.updateSelectedGenomeName} defaultValue="NONE_SELECTED" >
+              { !this.state.selectedGenomeName && <option value="NONE_SELECTED" disabled="disabled">Select a Genome</option> }
               {genomeOptions}
             </select>
             <select onChange={this.updateSelectedDataSetName} className="dataSetNameSelector" defaultValue="NONE_SELECTED" >

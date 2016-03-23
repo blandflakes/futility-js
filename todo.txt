@@ -1,45 +1,22 @@
-Try this for persisting vizualizer state instead of mess I'm doing with redux:
-http://stackoverflow.com/questions/31352261/how-to-keep-react-component-state-between-mount-unmount
-Also consider it for the fitness table.
-
-http://redux.js.org/docs/basics/UsageWithReact.html
-http://redux.js.org/docs/basics/ExampleTodoList.html
-
 Immediate TODO:
-1) With redux, ensure that removing a dataset removes it from visualizer as well
 1) search for more reusable components
 3) Ingesting multiple experiments at once can kill the machine with threads
 4) All data analysis should probably be done in a web worker - what I truly mean here is to take experiment analysis offline sooner.
 1) Add styling around various control entities (buttons, dropdowns, labels)
-1) When changing an organism in the visualizer, get rid of existing graphs
-1) Remove hardcoded organism selection, lazy-init things that rely on it
 1) Better loading messages?
-1) For a better loading experience: http://stackoverflow.com/questions/23555165/loading-message-before-time-consuming-operation-in-react-js
+datum is singular, data is plural. Fix this everywhere.
+total number of reads for each item in the vizualizer
+add index
+remote data set (password, file download)
 
 Future TODO:
 1) Create a server that can do the same feature extraction. DELAYED - will revisit with clustering
-2) Maybe Java installed version?
-3) Local storage of loaded data sets
+2) Clustering
+3) Maybe Java installed version?
+4) Local storage of loaded data sets
   * cache via a version and a checksum
-
-http://redux.js.org/docs/basics/UsageWithReact.html
-Note: Promises are not by their nature asynchronous.
-
-http://github.com/happypoulp/redux-tutorial/blob/master/11_src/src/home.jsx
-
-use componentWillReciveNewProps to deal with removal of things we're displaying.
-datum is singular, data is plural. Fix this everywhere.
-total number of reads for each item in the vizualizer
-
-Next:
-(Fitness table) Use a prefix query on the gene selector to account for selecting genes for a specific organism.
-Maybe clicking on things back and forth adds to a "to-load" list instead of swapping focus.
-  * Doesn't make too much sense going from vizualizer to fitness table...
-  * Does make sense going from fitness table to vizualizer.
-  * Should be able to accomplish with the "selectedIndex" property.
-Remote data set milestone:
-Password protect remote dataset
-Add a linter
+5) Prefix query on gene selectors
+6) Clicking back and forth navigation
 
 General validation:
 - when importing an experiment, make sure it's gene table matches our control
