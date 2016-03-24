@@ -107,13 +107,22 @@ function visibleItems(mappings, scale) {
   var left, right;
   left = scale.domain()[0];
   right = scale.domain()[1];
-  // We create a set because there are nearly guaranteed to be duplicates.
+  // We create a set because there are nearly guaranteed to be duplicates. Using the start position to determine uniqueness.
   // On the left side, we truncate the position because a gene at the previous position may extend to the
   // current position, and we want to catch it.
   // On the right side, we truncate, because if we are between genes, the last whole number position will either
   // be a read that extends to the next position or not.
-  var inRange = new Set(mappings.slice(Math.trunc(left), Math.trunc(right)).filter(exists));
-  return Array.from(inRange);
+  var encounteredStarts = new Set();
+  var allInRange = mappings.slice(Math.trunc(left), Math.trunc(right)).filter(exists);
+  var inRange = [];
+  for (var i = 0; i < allInRange.length; ++i) {
+    var candidate = allInRange[i];
+    if (!encounteredStarts.has(candidate.start)) {
+      encounteredStarts.add(candidate.start);
+      inRange.push(candidate);
+    }
+  }
+  return inRange;
 }
 
 var state = null;
@@ -232,7 +241,7 @@ export var GenomeVisualizer = connect(mapStateToProps)(React.createClass({
   },
   addDataSet: function() {
     var setToAdd = this.props.dataSets[this.state.selectedDataSetName];
-    var newMaxPosition = Math.max(this.state.maxPosition, setToAdd.backingIgv.stats.maxPosition);
+    var newMaxPosition = Math.max(this.state.maxPosition, setToAdd.stats.maxPosition);
     var newDataSets = this.state.displayedDataSetNames.concat([setToAdd.name]);
     this.setState({ maxPosition: newMaxPosition, displayedDataSetNames: newDataSets });
   },

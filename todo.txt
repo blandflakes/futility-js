@@ -11,8 +11,6 @@ Possible Future TODO:
 1) Create a server that can do the same feature extraction. DELAYED - will revisit with clustering
 2) Clustering
 3) Maybe Java installed version?
-4) Local storage of loaded data sets
-  * cache via a version and a checksum
 5) Prefix query on gene selectors
 6) Clicking back and forth navigation
 7) More information while loading (which data set we're on, which stage we're on)

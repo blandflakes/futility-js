@@ -1,7 +1,7 @@
 import React from 'react';
 import Loader from 'react-loader';
 import { connect } from 'react-redux';
-import { addDataSets, addGenomes, startLoading, stopLoading, removeDataSet, removeGenome } from '../actions/ingest';
+import { addDataSets, addGenomes, startLoading, stopLoading, removeDataSet, removeGenome, setAppState } from '../actions/ingest';
 import { basename, readTextFile } from 'lib/files';
 import { analyzeGenome, analyzeControl, analyzeExperiment } from 'lib/analysis';
 
@@ -24,7 +24,8 @@ const mapDispatchToProps = function(dispatch) {
     addGenomes: function(genomeMaps) { dispatch(addGenomes(genomeMaps)); },
     removeGenome: function(name) { dispatch(removeGenome(name)); },
     addDataSets: function(dataSets) { dispatch(addDataSets(dataSets)); },
-    removeDataSet: function(name) { dispatch(removeDataSet(name)); }
+    removeDataSet: function(name) { dispatch(removeDataSet(name)); },
+    setAppState: function(newState) { dispatch(setAppState(newState)); }
   };
 }
 
@@ -280,12 +281,58 @@ var DataViewer = React.createClass({
 
 
 export const IngestDataInterface = connect(mapStateToProps, mapDispatchToProps)(React.createClass({
+  getInitialState: function() {
+    return { selectedImportFile: null };
+  },
+  updateSelectedImportFile: function(e) {
+    this.setState({ selectedImportFile: e.target.files[0] });
+  },
+  importState: function() {
+    this.props.startLoading();
+    setTimeout(function() {
+      readTextFile(this.state.selectedImportFile).then(function(textObject) {
+        this.props.setAppState(JSON.parse(textObject.text));
+        this.setState({ selectedImportFile: null });
+        this.props.stopLoading();
+      }.bind(this),
+      function(error) {
+        alert("Error importing state: " + error);
+        this.setState({ selectedImportFile: null });
+        this.props.stopLoading();
+      }.bind(this));
+    }.bind(this), 0);
+  },
+  exportState: function() {
+    this.props.startLoading();
+    setTimeout(function() {
+      var contents = JSON.stringify({
+        version: "1.0",
+        genomes: this.props.genomes,
+        dataSets: this.props.dataSets
+      });
+      var a = document.createElement("a");
+      var file = new Blob([contents], { type: "application/json" });
+      a.href = URL.createObjectURL(file);
+      a.download = "futility.json";
+      this.props.stopLoading();
+      a.click();
+    }.bind(this), 0);
+  },
   render: function() {
     return (
       <div>
         <Loader loaded={!this.props.loading}>
+          <div className="importSlashExport">
+            <h1>Import/Export State</h1>
+            <p>Use these options to import state (load previously analyzed sessions) or to export the current state to a file.</p>
+            <h2>Import</h2>
+            <input type="file" onChange={this.updateSelectedImportFile} accept="*.json" />
+            <button className="importButton" onClick={this.importState} disabled={!this.state.selectedImportFile}>Import State</button>
+            <h2>Export</h2>
+            <button className="exportButton" onClick={this.exportState}>Export State</button>
+          </div>
           <div className="ingestData">
-            <h1>Manage Data Sets</h1>
+            <h1>Analyze Data Sets</h1>
             <GenomeUploader addGenomes={this.props.addGenomes} genomes={this.props.genomes}
               startLoading={this.props.startLoading} stopLoading={this.props.stopLoading}
               />

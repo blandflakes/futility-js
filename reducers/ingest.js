@@ -1,4 +1,4 @@
-import { assoc, assocAll, dissoc, dissocAll } from 'lib/func';
+import { assoc, assocAll, dissoc, dissocAll, merge } from 'lib/func';
 
 const initialState = {
   loading: false,
@@ -46,6 +46,9 @@ export function ingest(state = initialState, action) {
       setNamesToRemove.add(dataSet.name);
       var newDataSets = dissocAll(state.dataSets, setNamesToRemove);
       return assoc(state, "dataSets", newDataSets);
+    case "SET_APP_STATE":
+      var newState = dissoc(action.state, "version");
+      return merge(state, newState);
     default:
       return state;
   }

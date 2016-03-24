@@ -21,3 +21,7 @@ export function addDataSets(dataSets) {
 export function removeDataSet(name) {
   return { type: "REMOVE_DATA_SET", name: name };
 }
+
+export function setAppState(newState) {
+  return { type: "SET_APP_STATE", state: newState };
+}
