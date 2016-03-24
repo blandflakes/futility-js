@@ -5,10 +5,7 @@ TODO:
 4) Add styling around various control entities (buttons, dropdowns, labels)
 5) Run a linter
 6) total number of reads for each item in the vizualizer
-
-add index.html
-remote data set (password, file download)
-modified ratio can be NaN
+7) remote data set (password, file download)
 
 Possible Future TODO:
 1) Create a server that can do the same feature extraction. DELAYED - will revisit with clustering
