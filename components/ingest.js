@@ -95,7 +95,7 @@ function asyncImportTask(textObjects, analysisCallback, importCallback) {
       this.props.stopLoading();
     }.bind(this),
     function(error) {
-      alert("Import failed: " + error);
+      alert("Import failed: " + JSON.stringify(error));
       this.props.stopLoading();
     }.bind(this));
   }.bind(this), 0);
@@ -326,7 +326,7 @@ export const IngestDataInterface = connect(mapStateToProps, mapDispatchToProps)(
             <h1>Import/Export State</h1>
             <p>Use these options to import state (load previously analyzed sessions) or to export the current state to a file.</p>
             <h2>Import</h2>
-            <input type="file" onChange={this.updateSelectedImportFile} accept="*.json" />
+            <input type="file" onChange={this.updateSelectedImportFile} accept=".json" />
             <button className="importButton" onClick={this.importState} disabled={!this.state.selectedImportFile}>Import State</button>
             <h2>Export</h2>
             <button className="exportButton" onClick={this.exportState}>Export State</button>
