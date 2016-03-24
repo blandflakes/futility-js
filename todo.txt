@@ -1,18 +1,16 @@
-Immediate TODO:
+TODO:
 1) search for more reusable components
-3) Ingesting multiple experiments at once can kill the machine with threads
-4) All data analysis should probably be done in a web worker - what I truly mean here is to take experiment analysis offline sooner.
-1) Add styling around various control entities (buttons, dropdowns, labels)
-1) Better loading messages?
-datum is singular, data is plural. Fix this everywhere.
-total number of reads for each item in the vizualizer
-add index
+2) Ingesting multiple experiments at once can kill the machine with threads - probably make the number of threads configurable
+3) All data analysis should probably be done in a web worker - what I truly mean here is to take experiment analysis offline sooner.
+4) Add styling around various control entities (buttons, dropdowns, labels)
+5) Run a linter
+6) total number of reads for each item in the vizualizer
+
+add index.html
 remote data set (password, file download)
-test removing data sets
-linter
 modified ratio can be NaN
 
-Future TODO:
+Possible Future TODO:
 1) Create a server that can do the same feature extraction. DELAYED - will revisit with clustering
 2) Clustering
 3) Maybe Java installed version?
@@ -20,6 +18,7 @@ Future TODO:
   * cache via a version and a checksum
 5) Prefix query on gene selectors
 6) Clicking back and forth navigation
+7) More information while loading (which data set we're on, which stage we're on)
 
 General validation:
 - when importing an experiment, make sure it's gene table matches our control
