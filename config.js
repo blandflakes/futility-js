@@ -26,7 +26,6 @@ System.config({
     "react-redux": "npm:react-redux@4.4.1",
     "react-tabs": "npm:react-tabs@0.5.3",
     "redux": "npm:redux@3.3.1",
-    "threadify": "npm:threadify@0.2.0",
     "github:floatdrop/plugin-jsx@1.2.1": {
       "react-tools": "npm:react-tools@0.13.3"
     },

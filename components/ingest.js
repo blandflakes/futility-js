@@ -86,19 +86,32 @@ var TextFilesUploader = React.createClass({
   }
 });
 
+function asyncHelper(texts, analysisCallback, importCallback) {
+  if (texts.length === 0) {
+    this.props.stopLoading();
+    return;
+  }
+  else {
+    var next = texts.shift();
+    var recurse = asyncHelper.bind(this);
+    window.console.log("Kicking off: " + next.name);
+    setTimeout(function() {
+      analysisCallback(next).then(function(data) {
+        importCallback([data]);
+        recurse(texts, analysisCallback, importCallback);
+      },
+      function(error) {
+        alert("Error occurred importing item: " + next.name + ":" + error);
+        recurse(texts, analysisCallback, importCallback);
+      });
+    }, 0);
+  }
+}
+
 function asyncImportTask(textObjects, analysisCallback, importCallback) {
   this.props.startLoading();
-  setTimeout(function() {
-    var promises = textObjects.map(analysisCallback);
-    Promise.all(promises).then(function(data) {
-      importCallback(data);
-      this.props.stopLoading();
-    }.bind(this),
-    function(error) {
-      alert("Import failed: " + JSON.stringify(error));
-      this.props.stopLoading();
-    }.bind(this));
-  }.bind(this), 0);
+  var helper = asyncHelper.bind(this);
+  helper(textObjects, analysisCallback, importCallback);
 }
 
 var GenomeUploader = React.createClass({

@@ -1,11 +1,10 @@
 TODO:
-1) Ingesting multiple experiments at once can kill the machine with threads - probably make the number of threads configurable, and make sure that each import task is run in serial.
-2) search for more reusable components
-3) All data analysis should probably be done in a web worker - what I truly mean here is to take experiment analysis offline sooner.
-4) Add styling around various control entities (buttons, dropdowns, labels)
-5) Run a linter
-6) total number of reads for each item in the vizualizer
-7) remote data set (password, file download)
+1) search for more reusable components
+2) All data analysis should probably be done in a web worker - what I truly mean here is to take experiment analysis offline sooner.
+3) Add styling around various control entities (buttons, dropdowns, labels)
+4) Run a linter
+5) total number of reads for each item in the vizualizer
+6) remote data set (password, file download)
 
 Possible Future TODO:
 1) Create a server that can do the same feature extraction. DELAYED - will revisit with clustering
