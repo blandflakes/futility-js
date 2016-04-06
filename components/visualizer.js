@@ -180,8 +180,10 @@ export var GenomeVisualizer = connect(mapStateToProps)(React.createClass({
     newDisplayedDataSetNames = state.displayedDataSetNames.filter(function(dataSetName) {
       return this.props.dataSets[dataSetName];
     }.bind(this));
-    return assocAll(state, ["selectedGenomeName", "selectedDataSetName", "displayedDataSetNames"],
-                    [newSelectedGenomeName, newSelectedDataSetName, newDisplayedDataSetNames]);
+    // Zoom must be rebound, as "this" has changed if we're remounting.
+    var zoom = bindZoom(state.scales.x, state.scales.y, this);
+    return assocAll(state, ["selectedGenomeName", "selectedDataSetName", "displayedDataSetNames", "zoom"],
+                    [newSelectedGenomeName, newSelectedDataSetName, newDisplayedDataSetNames, zoom]);
   },
   componentWillUnmount: function() {
     state = this.state;
@@ -246,7 +248,7 @@ export var GenomeVisualizer = connect(mapStateToProps)(React.createClass({
     this.setState({ maxPosition: newMaxPosition, displayedDataSetNames: newDataSets });
   },
   removeDisplayedDataSet: function(nameToRemove) {
-    this.setState({ visibleDataSetNames: this.state.visibleDataSetNames.filter(function(setName) { return setName !== nameToRemove; }) });
+    this.setState({ displayedDataSetNames: this.state.displayedDataSetNames.filter(function(setName) { return setName !== nameToRemove; }) });
   },
   render: function() {
     var genomeOptions = this.props.genomeNames.sort().map(function(genomeName) {

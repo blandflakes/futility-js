@@ -12,11 +12,10 @@ export function ingest(state = initialState, action) {
       return assoc(state, "loading", true);
     case "STOP_LOADING":
       return assoc(state, "loading", false);
-    case "ADD_GENOMES":
-      var genomeMaps = action.genomeMaps;
-      var genomeKeys = genomeMaps.map(function(genomeMap) { return genomeMap.name; });
+    case "ADD_GENOME":
+      var genomeMap = action.genomeMap;
       var previousGenomes = state.genomes;
-      return assoc(state, "genomes", assocAll(previousGenomes, genomeKeys, genomeMaps));
+      return assoc(state, "genomes", assoc(previousGenomes, genomeMap.name, genomeMap));
     case "REMOVE_GENOME":
       var genomeName = action.name;
       var dataSets = state.dataSets;
@@ -26,10 +25,9 @@ export function ingest(state = initialState, action) {
       var newGenomes = dissoc(state.genomes, genomeName);
       var newDataSets = dissocAll(dataSets, dataSetNamesToRemove);
       return assocAll(state, ["genomes", "dataSets"], [newGenomes, newDataSets]);
-    case "ADD_DATA_SETS":
-      var newDataSets = action.dataSets;
-      var newKeys = newDataSets.map(function(dataSet) { return dataSet.name; });
-      return assoc(state, "dataSets", assocAll(state.dataSets, newKeys, newDataSets));
+    case "ADD_DATA_SET":
+      var newDataSet = action.dataSet;
+      return assoc(state, "dataSets", assoc(state.dataSets, newDataSet.name, newDataSet));
     case "REMOVE_DATA_SET":
       var dataSet = state.dataSets[action.name];
       var setNamesToRemove;

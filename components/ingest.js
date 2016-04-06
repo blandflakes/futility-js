@@ -1,10 +1,11 @@
 import React from 'react';
 import Loader from 'react-loader';
 import { connect } from 'react-redux';
-import { addDataSets, addGenomes, startLoading, stopLoading, removeDataSet, removeGenome, setAppState } from '../actions/ingest';
+import { addDataSet, addGenome, startLoading, stopLoading, removeDataSet, removeGenome, setAppState } from '../actions/ingest';
 import { basename, readTextFile } from 'lib/files';
 import { analyzeGenome, analyzeControl, analyzeExperiment } from 'lib/analysis';
 
+const WORK_DELAY_MS = 0;
 
 const mapStateToProps = function(state) {
   return {
@@ -21,9 +22,9 @@ const mapDispatchToProps = function(dispatch) {
   return {
     startLoading: function() { dispatch(startLoading()); },
     stopLoading: function() { dispatch(stopLoading()); },
-    addGenomes: function(genomeMaps) { dispatch(addGenomes(genomeMaps)); },
+    addGenome: function(genomeMap) { dispatch(addGenome(genomeMap)); },
     removeGenome: function(name) { dispatch(removeGenome(name)); },
-    addDataSets: function(dataSets) { dispatch(addDataSets(dataSets)); },
+    addDataSet: function(dataSet) { dispatch(addDataSet(dataSet)); },
     removeDataSet: function(name) { dispatch(removeDataSet(name)); },
     setAppState: function(newState) { dispatch(setAppState(newState)); }
   };
@@ -86,36 +87,12 @@ var TextFilesUploader = React.createClass({
   }
 });
 
-function asyncHelper(texts, analysisCallback, importCallback) {
-  if (texts.length === 0) {
-    this.props.stopLoading();
-    return;
-  }
-  else {
-    var next = texts.shift();
-    var recurse = asyncHelper.bind(this);
-    window.console.log("Kicking off: " + next.name);
-    setTimeout(function() {
-      analysisCallback(next).then(function(data) {
-        importCallback([data]);
-        recurse(texts, analysisCallback, importCallback);
-      },
-      function(error) {
-        alert("Error occurred importing item: " + next.name + ":" + error);
-        recurse(texts, analysisCallback, importCallback);
-      });
-    }, 0);
-  }
-}
-
-function asyncImportTask(textObjects, analysisCallback, importCallback) {
-  this.props.startLoading();
-  var helper = asyncHelper.bind(this);
-  helper(textObjects, analysisCallback, importCallback);
+function errorHandler(name, message) {
+  alert("Error handling '" + name + "': " + message + ". Aborting import here.");
+  dispatch(stopLoading());
 }
 
 var GenomeUploader = React.createClass({
-  asyncImportTask: asyncImportTask,
   validateGenomeName: function(filename) {
     var genomeName = basename(filename);
     if (this.props.genomes[genomeName]) {
@@ -123,9 +100,23 @@ var GenomeUploader = React.createClass({
     }
     return { pass: true };
   },
+  importHelper: function(textObjects) {
+    if (textObjects.length === 0) {
+      this.props.stopLoading();
+    }
+    else {
+      var next = textObjects.shift();
+      setTimeout(function() {
+        analyzeGenome(basename(next.name), next.text, function(genomeData) {
+          this.props.addGenome(genomeData);
+          this.importHelper(textObjects);
+        }.bind(this), errorHandler);
+      }.bind(this), WORK_DELAY_MS);
+    }
+  },
   importGenomes: function(genomeTexts) {
-    this.asyncImportTask(genomeTexts, function(textObject) { return analyzeGenome(basename(textObject.name), textObject.text); },
-                    this.props.addGenomes);
+    this.props.startLoading();
+    this.importHelper(genomeTexts);
   },
   render: function() {
     return (
@@ -139,7 +130,6 @@ var GenomeUploader = React.createClass({
 
 
 var ControlUploader = React.createClass({
-  asyncImportTask: asyncImportTask,
   getInitialState: function() {
     return { selectedGenomeName: null };
   },
@@ -159,10 +149,23 @@ var ControlUploader = React.createClass({
   updateSelectedGenomeName: function(e) {
     this.setState({ selectedGenomeName: e.target.value });
   },
+  importHelper: function(genomeName, textObjects) {
+    if (textObjects.length === 0) {
+      this.props.stopLoading();
+    }
+    else {
+      var next = textObjects.shift();
+      setTimeout(function() {
+        analyzeControl(basename(next.name), genomeName, next.text, function(controlData) {
+          this.props.addDataSet(controlData);
+          this.importHelper(genomeName, textObjects);
+        }.bind(this), errorHandler);
+      }.bind(this), WORK_DELAY_MS);
+    }
+  },
   importControls: function(controlTexts) {
-    var genomeName = this.state.selectedGenomeName;
-    this.asyncImportTask(controlTexts, function(textObject) { return analyzeControl(basename(textObject.name), genomeName, textObject.text); },
-                         this.props.addDataSets);
+    this.props.startLoading();
+    this.importHelper(this.state.selectedGenomeName, controlTexts);
   },
   render: function() {
     var genomeOptions = this.props.genomeNames.sort().map(function(genomeName) {
@@ -187,7 +190,6 @@ var ControlUploader = React.createClass({
 
 
 var ExperimentUploader = React.createClass({
-  asyncImportTask: asyncImportTask,
   getInitialState: function() {
     return { selectedControlName: null };
   },
@@ -206,11 +208,25 @@ var ExperimentUploader = React.createClass({
     }
     return { pass: true };
   },
+  importHelper: function(genome, control, textObjects) {
+    if (textObjects.length === 0) {
+      this.props.stopLoading();
+    }
+    else {
+      var next = textObjects.shift();
+      setTimeout(function() {
+        analyzeExperiment(basename(next.name), genome, control, next.text, function(experimentData) {
+          this.props.addDataSet(experimentData);
+          this.importHelper(genome, control, textObjects);
+        }.bind(this), errorHandler);
+      }.bind(this), WORK_DELAY_MS);
+    }
+  },
   importExperiments: function(experimentTexts) {
+    this.props.startLoading();
     var control = this.props.dataSets[this.state.selectedControlName];
     var genome = this.props.genomes[control.genomeName];
-    this.asyncImportTask(experimentTexts, function(textObject) { return analyzeExperiment(basename(textObject.name), genome, control, textObject.text); },
-                         this.props.addDataSets);
+    this.importHelper(genome, control, experimentTexts);
   },
   render: function() {
     var controlOptions = this.props.controlNames.sort().map(function(controlName) {
@@ -346,14 +362,14 @@ export const IngestDataInterface = connect(mapStateToProps, mapDispatchToProps)(
           </div>
           <div className="ingestData">
             <h1>Analyze Data Sets</h1>
-            <GenomeUploader addGenomes={this.props.addGenomes} genomes={this.props.genomes}
+            <GenomeUploader addGenome={this.props.addGenome} genomes={this.props.genomes}
               startLoading={this.props.startLoading} stopLoading={this.props.stopLoading}
               />
-            <ControlUploader addDataSets={this.props.addDataSets} genomeNames={this.props.genomeNames}
+            <ControlUploader addDataSet={this.props.addDataSet} genomeNames={this.props.genomeNames}
               startLoading={this.props.startLoading} stopLoading={this.props.stopLoading} dataSets={this.props.dataSets}
               />
             <br />
-            <ExperimentUploader addDataSets={this.props.addDataSets} genomes={this.props.genomes}
+            <ExperimentUploader addDataSet={this.props.addDataSet} genomes={this.props.genomes}
               controlNames={this.props.controlNames} startLoading={this.props.startLoading} stopLoading={this.props.stopLoading}
               dataSets={this.props.dataSets}
               />

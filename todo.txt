@@ -1,3 +1,4 @@
+Might be possible to get polyfills out of workers/analysis.js if we run babel on it without minifying.
 TODO:
 1) search for more reusable components
 2) All data analysis should probably be done in a web worker - what I truly mean here is to take experiment analysis offline sooner.
