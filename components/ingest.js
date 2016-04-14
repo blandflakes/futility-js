@@ -32,12 +32,11 @@ const mapDispatchToProps = function(dispatch) {
 
 // properties:
 // readyToImport: external conditions required for import are satisfied
-// textFilesCallback: function to call once text files have been imported (called on a list of {name: "", text: ""} objects)
+// importFilesCallback: function to call once we've decided to import these files
 // extensions: string of exceptions to put in 'accept'
-// [filenameValidator]: called with just the filenames. Allows rejection based on name alone, before we've attempted to load data. Same return as dataValidator
-// [dataValidator]: called with ({name: "name", text: "data"). Returns {pass: boolean, reason: "Can't overwrite..."}. If not present, no validation is done.
+// [filenameValidator]: called with each filename. Returns {pass: boolean, reason: "Can't overwrite..."}. If not present, no validation is done.
 // [buttonLabel]: label for the button. If not provided, will be "Import"
-var TextFilesUploader = React.createClass({
+var FilesUploader = React.createClass({
   getInitialState: function() {
     return { selectedFiles: [] };
   },
@@ -61,20 +60,7 @@ var TextFilesUploader = React.createClass({
         }
       }
     }
-    var readFilePromises = files.map(function(file) { return readTextFile(file); });
-    Promise.all(readFilePromises).then(function(readTextObjects) {
-      if (this.props.dataValidator) {
-        for (var i = 0; i < readTextObjects.length; ++i) {
-          var readTextObject = readTextObjects[i];
-          var result = this.props.dataValidator(readTextObject);
-          if (!result.pass) {
-            alert("Cannot handle data in file '" + readTextObject.name + "': " + result.reason);
-            return;
-          }
-        }
-      }
-      this.props.textFilesCallback(readTextObjects);
-    }.bind(this));
+    this.props.importFilesCallback(files);
   },
   render: function() {
     var buttonLabel = this.props.buttonLabel || "Import";
@@ -100,29 +86,29 @@ var GenomeUploader = React.createClass({
     }
     return { pass: true };
   },
-  importHelper: function(textObjects) {
-    if (textObjects.length === 0) {
+  importHelper: function(genomeFiles) {
+    if (genomeFiles.length === 0) {
       this.props.stopLoading();
     }
     else {
-      var next = textObjects.shift();
+      var next = genomeFiles.shift();
       setTimeout(function() {
-        analyzeGenome(basename(next.name), next.text, function(genomeData) {
+        analyzeGenome(basename(next.name), next, function(genomeData) {
           this.props.addGenome(genomeData);
-          this.importHelper(textObjects);
+          this.importHelper(genomeFiles);
         }.bind(this), errorHandler);
       }.bind(this), WORK_DELAY_MS);
     }
   },
-  importGenomes: function(genomeTexts) {
+  importGenomes: function(genomeFiles) {
     this.props.startLoading();
-    this.importHelper(genomeTexts);
+    this.importHelper(genomeFiles);
   },
   render: function() {
     return (
       <div className="genomeUploader">
         <h2>Import New Genome:</h2>
-        <TextFilesUploader readyToImport={true} filenameValidator={this.validateGenomeName} textFilesCallback={this.importGenomes} extensions=".tsv" buttonLabel="Import Genome" />
+        <FilesUploader readyToImport={true} filenameValidator={this.validateGenomeName} importFilesCallback={this.importGenomes} extensions=".tsv" buttonLabel="Import Genome" />
       </div>
     );
   }
@@ -149,23 +135,23 @@ var ControlUploader = React.createClass({
   updateSelectedGenomeName: function(e) {
     this.setState({ selectedGenomeName: e.target.value });
   },
-  importHelper: function(genomeName, textObjects) {
-    if (textObjects.length === 0) {
+  importHelper: function(genomeName, controlFiles) {
+    if (controlFiles.length === 0) {
       this.props.stopLoading();
     }
     else {
-      var next = textObjects.shift();
+      var next = controlFiles.shift();
       setTimeout(function() {
-        analyzeControl(basename(next.name), genomeName, next.text, function(controlData) {
+        analyzeControl(basename(next.name), genomeName, next, function(controlData) {
           this.props.addDataSet(controlData);
-          this.importHelper(genomeName, textObjects);
+          this.importHelper(genomeName, controlFiles);
         }.bind(this), errorHandler);
       }.bind(this), WORK_DELAY_MS);
     }
   },
-  importControls: function(controlTexts) {
+  importControls: function(controlFiles) {
     this.props.startLoading();
-    this.importHelper(this.state.selectedGenomeName, controlTexts);
+    this.importHelper(this.state.selectedGenomeName, controlFiles);
   },
   render: function() {
     var genomeOptions = this.props.genomeNames.sort().map(function(genomeName) {
@@ -182,7 +168,7 @@ var ControlUploader = React.createClass({
         <br />
         <span>Select a control file:</span>
         <br />
-        <TextFilesUploader readyToImport={this.state.selectedGenomeName} filenameValidator={this.validateControlName} textFilesCallback={this.importControls} extensions=".igv" buttonLabel="Import Controls"/>
+        <FilesUploader readyToImport={this.state.selectedGenomeName} filenameValidator={this.validateControlName} importFilesCallback={this.importControls} extensions=".igv" buttonLabel="Import Controls"/>
       </div>
     );
   }
@@ -208,25 +194,25 @@ var ExperimentUploader = React.createClass({
     }
     return { pass: true };
   },
-  importHelper: function(genome, control, textObjects) {
-    if (textObjects.length === 0) {
+  importHelper: function(genome, control, experimentFiles) {
+    if (experimentFiles.length === 0) {
       this.props.stopLoading();
     }
     else {
-      var next = textObjects.shift();
+      var next = experimentFiles.shift();
       setTimeout(function() {
-        analyzeExperiment(basename(next.name), genome, control, next.text, function(experimentData) {
+        analyzeExperiment(basename(next.name), genome, control, next, function(experimentData) {
           this.props.addDataSet(experimentData);
-          this.importHelper(genome, control, textObjects);
+          this.importHelper(genome, control, experimentFiles);
         }.bind(this), errorHandler);
       }.bind(this), WORK_DELAY_MS);
     }
   },
-  importExperiments: function(experimentTexts) {
+  importExperiments: function(experimentFiles) {
     this.props.startLoading();
     var control = this.props.dataSets[this.state.selectedControlName];
     var genome = this.props.genomes[control.genomeName];
-    this.importHelper(genome, control, experimentTexts);
+    this.importHelper(genome, control, experimentFiles);
   },
   render: function() {
     var controlOptions = this.props.controlNames.sort().map(function(controlName) {
@@ -243,7 +229,7 @@ var ExperimentUploader = React.createClass({
         <br />
         <span>Select experiment files: </span>
         <br />
-        <TextFilesUploader readyToImport={this.state.selectedControlName} filenameValidator={this.validateExperimentName} textFilesCallback={this.importExperiments} extensions=".igv" buttonLabel="Import Data"/>
+        <FilesUploader readyToImport={this.state.selectedControlName} filenameValidator={this.validateExperimentName} importFilesCallback={this.importExperiments} extensions=".igv" buttonLabel="Import Data"/>
       </div>
     );
   }
