@@ -30,6 +30,7 @@ function formattedExponential(precision) {
 
 var DecimalFormatter = formattedDecimal(5);
 var ExponentialFormatter = formattedExponential(3);
+var RoundToIntFormatter = formattedDecimal(0);
 
 var state = null;
 export var FitnessTable = connect(mapStateToProps)(React.createClass({
@@ -44,7 +45,7 @@ export var FitnessTable = connect(mapStateToProps)(React.createClass({
       }
       // Ok, the genome is still valid. How about the gene?
       else {
-        if (state.selectedGeneName && !this.props.genomes[state.selectedGenomeName].map[state.selectedGeneName]) {
+        if (state.selectedGeneName && !this.props.genomes[state.selectedGenomeName].geneMap[state.selectedGeneName]) {
           newSelectedGeneName = null;
         }
       }
@@ -74,7 +75,7 @@ export var FitnessTable = connect(mapStateToProps)(React.createClass({
     });
     var geneOptions;
     if (this.state.selectedGenomeName) {
-      geneOptions = Object.keys(this.props.genomes[this.state.selectedGenomeName].map).map(function(geneName) {
+      geneOptions = Object.keys(this.props.genomes[this.state.selectedGenomeName].geneMap).sort().map(function(geneName) {
         return <option value={geneName} key={geneName}>{geneName}</option>;
       });
     }
@@ -84,7 +85,7 @@ export var FitnessTable = connect(mapStateToProps)(React.createClass({
     var experimentFeatures;
     if (this.state.selectedGeneName) {
       experimentFeatures = this.props.experiments.map(function(experiment) {
-        var features = experiment.features[this.state.selectedGeneName];
+        var features = experiment.geneFeatureMeasurements[this.state.selectedGeneName];
         return assoc(features, "condition", experiment.name);
       }.bind(this));
     }
@@ -109,13 +110,13 @@ export var FitnessTable = connect(mapStateToProps)(React.createClass({
             initialSort={"condition"}
             columnMetadata={
               [ { columnName: "condition", displayName: "Condition", order: 0 },
-                { columnName: "TASites", displayName: "Number of TA Sites", order: 1 },
+                { columnName: "numTASites", displayName: "Number of TA Sites", order: 1 },
                 { columnName: "geneLength", displayName: "Length of Gene", order: 2 },
-                { columnName: "controlReads", displayName: "Raw # Sequence Reads Control", order: 3 },
-                { columnName: "experimentReads", displayName: "Raw # Sequence Reads Experiment", order: 4 },
-                { columnName: "correctedRatio", displayName: "Modified Ratio", order: 5, customComponent: DecimalFormatter },
+                { columnName: "numControlReads", displayName: "Raw # Sequence Reads Control", order: 3, customComponent: RoundToIntFormatter },
+                { columnName: "numExperimentReads", displayName: "Raw # Sequence Reads Experiment", order: 4, customComponent: RoundToIntFormatter },
+                { columnName: "modifiedRatio", displayName: "Modified Ratio", order: 5, customComponent: DecimalFormatter },
                 { columnName: "p", displayName: "Corrected p-value", order: 6, customComponent: ExponentialFormatter },
-                { columnName: "index", displayName: "Essentiality Index", order: 7, customComponent: DecimalFormatter },
+                { columnName: "essentialityIndex", displayName: "Essentiality Index", order: 7, customComponent: DecimalFormatter },
                 { columnName: "fitness", displayName: "Normalized Fitness", order: 8, customComponent: DecimalFormatter }]}
           /> }
       </div>

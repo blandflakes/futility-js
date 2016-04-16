@@ -103,7 +103,15 @@ var GenomeGraph = React.createClass({
 
 function exists(item) { return item !== null && item !== undefined; }
 
-function visibleItems(mappings, scale) {
+function range(start, end) {
+  var arr = Array(end - start + 1);
+  for (var i = start; i <= end; ++i) {
+    arr[i - start] = i;
+  }
+  return arr;
+}
+
+function visibleItems(mapping, index, scale) {
   var left, right;
   left = scale.domain()[0];
   right = scale.domain()[1];
@@ -112,8 +120,8 @@ function visibleItems(mappings, scale) {
   // current position, and we want to catch it.
   // On the right side, we truncate, because if we are between genes, the last whole number position will either
   // be a read that extends to the next position or not.
+  var allInRange = range(Math.trunc(left), Math.trunc(right)).map(function(indexIndex) { return mapping[index[indexIndex]]; }).filter(exists);
   var encounteredStarts = new Set();
-  var allInRange = mappings.slice(Math.trunc(left), Math.trunc(right)).filter(exists);
   var inRange = [];
   for (var i = 0; i < allInRange.length; ++i) {
     var candidate = allInRange[i];
@@ -214,7 +222,7 @@ export var GenomeVisualizer = connect(mapStateToProps)(React.createClass({
     var targetIndex;
     if (isNaN(target)) {
       // Hopefully a string label.
-      var map = this.props.genomes[this.state.selectedGenomeName].map;
+      var map = this.props.genomes[this.state.selectedGenomeName].geneMap;
       var label = map[target];
       if (exists(label)) {
         targetIndex = (label.start + label.end) / 2;
@@ -226,7 +234,7 @@ export var GenomeVisualizer = connect(mapStateToProps)(React.createClass({
     }
     else {
       targetIndex = parseInt(target);
-      if (targetIndex > this.genomeLength) {
+      if (targetIndex > this.state.maxPosition) {
         alert("Target index is greater than the size of the genome!");
         return;
       }
@@ -243,7 +251,7 @@ export var GenomeVisualizer = connect(mapStateToProps)(React.createClass({
   },
   addDataSet: function() {
     var setToAdd = this.props.dataSets[this.state.selectedDataSetName];
-    var newMaxPosition = Math.max(this.state.maxPosition, setToAdd.stats.maxPosition);
+    var newMaxPosition = Math.max(this.state.maxPosition, setToAdd.sequenceMeasurements.stats.maxPosition);
     var newDataSets = this.state.displayedDataSetNames.concat([setToAdd.name]);
     this.setState({ maxPosition: newMaxPosition, displayedDataSetNames: newDataSets });
   },
@@ -268,8 +276,9 @@ export var GenomeVisualizer = connect(mapStateToProps)(React.createClass({
     });
     var graphs = this.state.displayedDataSetNames.map(function(displayedSetName) {
       var displayedSet = this.props.dataSets[displayedSetName];
-      var visibleMappings = visibleItems(displayedSet.heightMappings, this.state.scales.x);
-      var visibleLabels = visibleItems(this.props.genomes[this.state.selectedGenomeName].listing, this.state.scales.x);
+      var visibleMappings = visibleItems(displayedSet.sequenceMeasurements.rawData, displayedSet.sequenceMeasurements.index, this.state.scales.x);
+      var genome = this.props.genomes[this.state.selectedGenomeName];
+      var visibleLabels = visibleItems(genome.geneMap, genome.index, this.state.scales.x);
       var removeHandler = function() { this.removeDisplayedDataSet(displayedSetName); }.bind(this);
       return (
         <div className="graphContainer" key={displayedSet.name}>

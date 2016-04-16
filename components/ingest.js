@@ -73,11 +73,6 @@ var FilesUploader = React.createClass({
   }
 });
 
-function errorHandler(name, message) {
-  alert("Error handling '" + name + "': " + message + ". Aborting import here.");
-  dispatch(stopLoading());
-}
-
 var GenomeUploader = React.createClass({
   validateGenomeName: function(filename) {
     var genomeName = basename(filename);
@@ -92,11 +87,16 @@ var GenomeUploader = React.createClass({
     }
     else {
       var next = genomeFiles.shift();
+      var name = basename(next.name);
       setTimeout(function() {
-        analyzeGenome(basename(next.name), next, function(genomeData) {
+        analyzeGenome(name, next, function(genomeData) {
           this.props.addGenome(genomeData);
           this.importHelper(genomeFiles);
-        }.bind(this), errorHandler);
+        }.bind(this),
+        function(error) {
+          alert("Error handling '" + name + "': " + error + ". Aborting import here.");
+          this.props.stopLoading();
+        }.bind(this));
       }.bind(this), WORK_DELAY_MS);
     }
   },
@@ -141,11 +141,16 @@ var ControlUploader = React.createClass({
     }
     else {
       var next = controlFiles.shift();
+      var name = basename(next.name);
       setTimeout(function() {
-        analyzeControl(basename(next.name), genomeName, next, function(controlData) {
+        analyzeControl(name, genomeName, next, function(controlData) {
           this.props.addDataSet(controlData);
           this.importHelper(genomeName, controlFiles);
-        }.bind(this), errorHandler);
+        }.bind(this),
+        function(error) {
+          alert("Error handling '" + name + "': " + error + ". Aborting import here.");
+          this.props.stopLoading();
+        }.bind(this));
       }.bind(this), WORK_DELAY_MS);
     }
   },
@@ -180,7 +185,7 @@ var ExperimentUploader = React.createClass({
     return { selectedControlName: null };
   },
   componentWillReceiveProps: function(nextProps) {
-    if (this.state.selectedControlName && !nextProps.controlNames.include(this.state.selectedControlName)) {
+    if (this.state.selectedControlName && !nextProps.controlNames.includes(this.state.selectedControlName)) {
       this.setState({ selectedControlName: null });
     }
   },
@@ -200,11 +205,16 @@ var ExperimentUploader = React.createClass({
     }
     else {
       var next = experimentFiles.shift();
+      var name = basename(next.name);
       setTimeout(function() {
-        analyzeExperiment(basename(next.name), genome, control, next, function(experimentData) {
+        analyzeExperiment(name, genome, control, next, function(experimentData) {
           this.props.addDataSet(experimentData);
           this.importHelper(genome, control, experimentFiles);
-        }.bind(this), errorHandler);
+        }.bind(this),
+        function(error) {
+          alert("Error handling '" + name + "': " + error + ". Aborting import here.");
+          this.props.stopLoading();
+        }.bind(this));
       }.bind(this), WORK_DELAY_MS);
     }
   },

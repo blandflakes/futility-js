@@ -1,11 +1,9 @@
 Immediate TODO:
 6) remote data set (password, file download)
-1) Link to downloadable Jar on index.
-1) Links to data sets and downloadable jar separate from help page (separate tab?)
-1) Warn on reflection in futility-server
 
 TODO:
 1) search for more reusable components
+2) May be able to pass less data to experiment analysis
 3) Add styling around various control entities (buttons, dropdowns, labels)
 4) Run a linter
 5) total number of reads for each item in the vizualizer
