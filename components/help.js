@@ -15,7 +15,7 @@ export const HelpInterface = React.createClass({
         <p>Click "Fitness Table." Here, you can select a genome, and then a gene within that genome. We'll load the analyzed features from each imported experiment and display them in
           the table. The table can be sorted by clicking on the columns.</p>
         <h1>How do I save my work?</h1>
-        <p>Under "Data Management", a section called "Import/Export State" allows you to export the current analyzed data (click "Export State"). This file can be imported later, which saves having to run the data through the analysis again.</p>
+        <p>Under "Data Management", a section called "Import/Export State" allows you to export the current analyzed data (click "Export State"). This file can be imported later, which saves having to run the data through the analysis again. Be sure to move the file to a safe location - your computer may clean up temporary files periodically.</p>
       </div>);
   }
 });

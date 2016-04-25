@@ -3,15 +3,29 @@ Immediate TODO:
 
 TODO:
 1) search for more reusable components
-2) May be able to pass less data to experiment analysis
 3) Add styling around various control entities (buttons, dropdowns, labels)
 4) Run a linter
 5) total number of reads for each item in the vizualizer
 
 Possible Future TODO:
+1) Persist data to disk on server-side to reduce memory usage
 2) Clustering
+3) General speed/memory optimization
+  * Dramatic speed increases and memory usage reduction would come from not having to go from browser->web server.
+
+>  i mean i'm not comparing rendering performance
+>  that's maybe comparable
+>  i'm referring to the communication
+>  every time i want data, I have to ask the web server for it
+>  which at LEAST means the data has to be sent through a webserver
+>  instead of looked up in memory
+>  but that's not all - the data must of course be serialized to json between the two things
+>  i mean the analysis is slow at first but going native would make everything else instant
+>  not that i'm too unhappy with where things stand
+
+4) Gene directionality
 5) Prefix query on gene selectors
-6) Clicking back and forth navigation
+6) Clicking back and forth navigation (i.e. go from a gene on the visualizer to that gene in the fitness viewer)
 7) More information while loading (which data set we're on, which stage we're on)
 
 General validation:

@@ -1,20 +1,22 @@
 import React from 'react';
 import Loader from 'react-loader';
 import { connect } from 'react-redux';
-import { addDataSet, addGenome, startLoading, stopLoading, removeDataSet, removeGenome, setAppState } from '../actions/ingest';
+import { startLoading, stopLoading, setAppState } from '../actions/ingest';
 import { basename, readTextFile } from 'lib/files';
 import { analyzeGenome, analyzeControl, analyzeExperiment } from 'lib/analysis';
+import { removeControl, removeExperiment, removeGenome, restoreSession, saveSession  } from 'lib/data';
 
 const WORK_DELAY_MS = 0;
 
 const mapStateToProps = function(state) {
   return {
     loading: state.loading,
-    genomes: state.genomes,
-    dataSets: state.dataSets,
-    genomeNames: Object.keys(state.genomes),
-    controlNames: Object.keys(state.dataSets).filter(function(dataSetName) { return state.dataSets[dataSetName].type === "control"; }),
-    experimentNames: Object.keys(state.dataSets).filter(function(dataSetName) { return state.dataSets[dataSetName].type === "experiment"; })
+    genomeNames: state.genomes,
+    controls: state.controls,
+    controlNames: Object.keys(state.controls),
+    experiments: state.experiments,
+    experimentNames: Object.keys(state.experiments),
+    allDataSetNames: Object.keys(state.controls).concat(Object.keys(state.experiments)).sort()
   };
 }
 
@@ -22,10 +24,6 @@ const mapDispatchToProps = function(dispatch) {
   return {
     startLoading: function() { dispatch(startLoading()); },
     stopLoading: function() { dispatch(stopLoading()); },
-    addGenome: function(genomeMap) { dispatch(addGenome(genomeMap)); },
-    removeGenome: function(name) { dispatch(removeGenome(name)); },
-    addDataSet: function(dataSet) { dispatch(addDataSet(dataSet)); },
-    removeDataSet: function(name) { dispatch(removeDataSet(name)); },
     setAppState: function(newState) { dispatch(setAppState(newState)); }
   };
 }
@@ -76,7 +74,7 @@ var FilesUploader = React.createClass({
 var GenomeUploader = React.createClass({
   validateGenomeName: function(filename) {
     var genomeName = basename(filename);
-    if (this.props.genomes[genomeName]) {
+    if (this.props.genomeNames.includes(genomeName)) {
       return { pass: false, reason: "Cannot overwrite genome with name '" + genomeName + "'" };
     }
     return { pass: true };
@@ -89,8 +87,8 @@ var GenomeUploader = React.createClass({
       var next = genomeFiles.shift();
       var name = basename(next.name);
       setTimeout(function() {
-        analyzeGenome(name, next, function(genomeData) {
-          this.props.addGenome(genomeData);
+        analyzeGenome(name, next, function(updatedState) {
+          this.props.setAppState(updatedState);
           this.importHelper(genomeFiles);
         }.bind(this),
         function(error) {
@@ -121,13 +119,13 @@ var ControlUploader = React.createClass({
   },
   componentWillReceiveProps: function(nextProps) {
     // Just reset the selected genome if it's been removed
-    if (this.state.selectedGenomeName && !nextProps.genomes[this.state.selectedGenomeName]) {
+    if (this.state.selectedGenomeName && !nextProps.genomeNames.includes(this.state.selectedGenomeName)) {
       this.setState({ selectedGenomeName: null});
     }
   },
   validateControlName: function(filename) {
     var controlName = basename(filename);
-    if (this.props.dataSets[controlName]) {
+    if (this.props.allDataSetNames.includes(controlName)) {
       return { pass: false, reason: "Cannot overwrite data set with name '" + controlName + "'"};
     }
     return { pass: true };
@@ -143,8 +141,8 @@ var ControlUploader = React.createClass({
       var next = controlFiles.shift();
       var name = basename(next.name);
       setTimeout(function() {
-        analyzeControl(name, genomeName, next, function(controlData) {
-          this.props.addDataSet(controlData);
+        analyzeControl(name, genomeName, next, function(updatedState) {
+          this.props.setAppState(updatedState);
           this.importHelper(genomeName, controlFiles);
         }.bind(this),
         function(error) {
@@ -194,12 +192,12 @@ var ExperimentUploader = React.createClass({
   },
   validateExperimentName: function(filename) {
     var experimentName = basename(filename);
-    if (this.props.dataSets[experimentName]) {
+    if (this.props.allDataSetNames.includes(experimentName)) {
       return { pass: false, reason: "Cannot overwrite data set with name '" + experimentName + "'"};
     }
     return { pass: true };
   },
-  importHelper: function(genome, control, experimentFiles) {
+  importHelper: function(genomeName, controlName, experimentFiles) {
     if (experimentFiles.length === 0) {
       this.props.stopLoading();
     }
@@ -207,9 +205,9 @@ var ExperimentUploader = React.createClass({
       var next = experimentFiles.shift();
       var name = basename(next.name);
       setTimeout(function() {
-        analyzeExperiment(name, genome, control, next, function(experimentData) {
-          this.props.addDataSet(experimentData);
-          this.importHelper(genome, control, experimentFiles);
+        analyzeExperiment(name, genomeName, controlName, next, function(updatedState) {
+          this.props.setAppState(updatedState);
+          this.importHelper(genomeName, controlName, experimentFiles);
         }.bind(this),
         function(error) {
           alert("Error handling '" + name + "': " + error + ". Aborting import here.");
@@ -220,9 +218,8 @@ var ExperimentUploader = React.createClass({
   },
   importExperiments: function(experimentFiles) {
     this.props.startLoading();
-    var control = this.props.dataSets[this.state.selectedControlName];
-    var genome = this.props.genomes[control.genomeName];
-    this.importHelper(genome, control, experimentFiles);
+    var control = this.props.controls[this.state.selectedControlName];
+    this.importHelper(control.genomeName, control.name, experimentFiles);
   },
   render: function() {
     var controlOptions = this.props.controlNames.sort().map(function(controlName) {
@@ -247,18 +244,24 @@ var ExperimentUploader = React.createClass({
 
 
 var DataViewer = React.createClass({
+  removalCallback: function(newAppState) {
+    this.props.setAppState(newAppState);
+  },
+  removalErrorHandler: function(errorMessage) {
+    alert("Unable to remove data: " + errorMessage);
+  },
   render: function() {
     var genomeRows = this.props.genomeNames.map(function(genomeName) {
-      var boundRemoveGenome = this.props.removeGenome.bind(this, genomeName);
+      var boundRemoveGenome = function() { removeGenome(genomeName, this.removalCallback, this.removalErrorHandler); }.bind(this);
       return <tr key={genomeName}><td>{genomeName}</td><td><button onClick={boundRemoveGenome}>Remove</button></td></tr>;
     }.bind(this));
     var controlRows = this.props.controlNames.map(function(controlName) {
-      var boundRemoveControl = this.props.removeDataSet.bind(this, controlName);
-      return <tr key={controlName}><td>{controlName}</td><td>{this.props.dataSets[controlName].genomeName}</td><td><button onClick={boundRemoveControl}>Remove</button></td></tr>;
+      var boundRemoveControl = function() { removeControl(controlName, this.props.setAppState, this.removalErrorHandler); }.bind(this);
+      return <tr key={controlName}><td>{controlName}</td><td>{this.props.controls[controlName].genomeName}</td><td><button onClick={boundRemoveControl}>Remove</button></td></tr>;
     }.bind(this));
     var experimentRows = this.props.experimentNames.map(function(experimentName) {
-      var boundRemoveExperiment = this.props.removeDataSet.bind(this, experimentName);
-      return <tr key={experimentName}><td>{experimentName}</td><td>{this.props.dataSets[experimentName].controlName}</td><td><button onClick={boundRemoveExperiment}>Remove</button></td></tr>;
+      var boundRemoveExperiment = function() { removeExperiment(experimentName, this.props.setAppState, this.removalErrorHandler); }.bind(this);
+      return <tr key={experimentName}><td>{experimentName}</td><td>{this.props.experiments[experimentName].controlName}</td><td><button onClick={boundRemoveExperiment}>Remove</button></td></tr>;
     }.bind(this));
     return (
       <div className="viewData">
@@ -307,74 +310,64 @@ var DataViewer = React.createClass({
 
 export const IngestDataInterface = connect(mapStateToProps, mapDispatchToProps)(React.createClass({
   getInitialState: function() {
-    return { selectedImportFile: null };
+    return { importFilepath: "" };
   },
-  updateSelectedImportFile: function(e) {
-    this.setState({ selectedImportFile: e.target.files[0] });
+  updateImportFilepath: function(e) {
+    this.setState({ importFilepath: e.target.value });
   },
   importState: function() {
     this.props.startLoading();
-    setTimeout(function() {
-      readTextFile(this.state.selectedImportFile).then(function(textObject) {
-        this.props.setAppState(JSON.parse(textObject.text));
-        this.setState({ selectedImportFile: null });
-        this.props.stopLoading();
-      }.bind(this),
-      function(error) {
-        alert("Error importing state: " + error);
-        this.setState({ selectedImportFile: null });
-        this.props.stopLoading();
-      }.bind(this));
-    }.bind(this), 0);
+    restoreSession(this.state.importFilepath, function(newState) {
+      this.setState({ importFilepath: "" });
+      this.props.setAppState(newState);
+      this.props.stopLoading();
+    }.bind(this), function(errorMessage) {
+      alert("Error restoring session: " + errorMessage);
+    }.bind(this));
   },
   exportState: function() {
     this.props.startLoading();
-    setTimeout(function() {
-      var contents = JSON.stringify({
-        version: "1.0",
-        genomes: this.props.genomes,
-        dataSets: this.props.dataSets
-      });
-      var a = document.createElement("a");
-      var file = new Blob([contents], { type: "application/json" });
-      a.href = URL.createObjectURL(file);
-      a.download = "futility.json";
+    saveSession(function(data) {
+      alert("Session saved to file with path: " + data.path);
       this.props.stopLoading();
-      a.click();
-    }.bind(this), 0);
+    }.bind(this), function(errorMessage) {
+      alert("Error saving session: " + errorMessage);
+      this.props.stopLoading();
+    }.bind(this));
   },
   render: function() {
     return (
-      <div>
-        <Loader loaded={!this.props.loading}>
+      <Loader loaded={!this.props.loading}>
+        <div>
           <div className="importSlashExport">
             <h1>Import/Export State</h1>
-            <p>Use these options to import state (load previously analyzed sessions) or to export the current state to a file.</p>
+            <p>Use these options to import state (load previously analyzed sessions) or to export the current state to a file. Note that due to
+              memory limitations in the browser, we'll return a filepath pointing to the session that you should keep somewhere safe, and take that filepath
+              to restore the session.</p>
             <h2>Import</h2>
-            <input type="file" onChange={this.updateSelectedImportFile} accept=".json" />
-            <button className="importButton" onClick={this.importState} disabled={!this.state.selectedImportFile}>Import State</button>
+            <input className="importFilepathInput" placeholder="Path to session file" value={this.state.importFilepath} onChange={this.updateImportFilepath} />
+            <button className="importButton" onClick={this.importState} disabled={!this.state.importFilepath}>Import State</button>
             <h2>Export</h2>
             <button className="exportButton" onClick={this.exportState}>Export State</button>
           </div>
           <div className="ingestData">
             <h1>Analyze Data Sets</h1>
-            <GenomeUploader addGenome={this.props.addGenome} genomes={this.props.genomes}
+            <GenomeUploader genomeNames={this.props.genomeNames} setAppState={this.props.setAppState}
               startLoading={this.props.startLoading} stopLoading={this.props.stopLoading}
               />
-            <ControlUploader addDataSet={this.props.addDataSet} genomeNames={this.props.genomeNames}
-              startLoading={this.props.startLoading} stopLoading={this.props.stopLoading} dataSets={this.props.dataSets}
+            <ControlUploader genomeNames={this.props.genomeNames} setAppState={this.props.setAppState}
+              startLoading={this.props.startLoading} stopLoading={this.props.stopLoading} allDataSetNames={this.props.allDataSetNames}
               />
             <br />
-            <ExperimentUploader addDataSet={this.props.addDataSet} genomes={this.props.genomes}
-              controlNames={this.props.controlNames} startLoading={this.props.startLoading} stopLoading={this.props.stopLoading}
-              dataSets={this.props.dataSets}
+            <ExperimentUploader addDataSet={this.props.addDataSet} genomeNames={this.props.genomeNames}
+              controlNames={this.props.controlNames} controls={this.props.controls} startLoading={this.props.startLoading} stopLoading={this.props.stopLoading}
+              allDataSetNames={this.props.allDataSetNames} setAppState={this.props.setAppState}
               />
           </div>
-          <DataViewer genomeNames={this.props.genomeNames} controlNames={this.props.controlNames} dataSets={this.props.dataSets}
-            experimentNames={this.props.experimentNames} removeGenome={this.props.removeGenome}
-            removeDataSet={this.props.removeDataSet} />
-        </Loader>
-      </div>
+          <DataViewer genomeNames={this.props.genomeNames} controls={this.props.controls} experiments={this.props.experiments}
+            controlNames={this.props.controlNames} experimentNames={this.props.experimentNames} setAppState={this.props.setAppState} />
+        </div>
+      </Loader>
     );
   }
 }));

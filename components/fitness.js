@@ -1,13 +1,23 @@
 import React from 'react';
 import Griddle from 'griddle-react';
+import Loader from 'react-loader';
 import { connect } from 'react-redux';
+import { startLoading, stopLoading } from '../actions/ingest';
+import { queryGenome, queryFeatures } from 'lib/data';
 import { assoc, assocAll } from 'lib/func';
 
 const mapStateToProps = function(state) {
   return {
-    genomes: state.genomes,
-    genomeNames: Object.keys(state.genomes),
-    experiments: Object.values(state.dataSets).filter(function(dataSet) { return dataSet.type === "experiment"; })
+    loading: state.loading,
+    genomeNames: state.genomes,
+    experiments: state.experiments
+  };
+}
+
+const mapDispatchToProps = function(dispatch) {
+  return {
+    startLoading: function() { dispatch(startLoading()); },
+    stopLoading: function() { dispatch(stopLoading()); }
   };
 }
 
@@ -33,93 +43,116 @@ var ExponentialFormatter = formattedExponential(3);
 var RoundToIntFormatter = formattedDecimal(0);
 
 var state = null;
-export var FitnessTable = connect(mapStateToProps)(React.createClass({
+export var FitnessTable = connect(mapStateToProps, mapDispatchToProps)(React.createClass({
   updateStateToProps: function(state) {
-    var newSelectedGenomeName = state.selectedGenomeName;
+    var newSelectedGenome = state.selectedGenome;
     var newSelectedGeneName = state.selectedGeneName;
+    var newLoadedFeatures = state.loadedFeatures;
     // If the genome has been removed, unselect everything
-    if (state.selectedGenomeName) {
-      if (!this.props.genomes[state.selectedGenomeName]) {
-        newSelectedGenomeName = null;
+    if (state.selectedGenome) {
+      if (!this.props.genomeNames.includes(state.selectedGenome.name)) {
+        newSelectedGenome = null;
         newSelectedGeneName = null;
+        newLoadedFeatures = null;
       }
       // Ok, the genome is still valid. How about the gene?
       else {
-        if (state.selectedGeneName && !this.props.genomes[state.selectedGenomeName].geneMap[state.selectedGeneName]) {
+        if (state.selectedGeneName && !state.selectedGenome.geneMap[state.selectedGeneName]) {
           newSelectedGeneName = null;
+          newLoadedFeatures = null;
+        }
+        else {
         }
       }
     }
-    return assocAll(state, ["selectedGenomeName", "selectedGeneName"], [newSelectedGenomeName, newSelectedGeneName]);
+    // Finally, remove any loaded experiments that were removed
+    if (newLoadedFeatures) {
+      newLoadedFeatures = newLoadedFeatures.filter(function(featureList) {
+        return this.props.experiments[featureList.condition];
+      }.bind(this));
+    }
+    return assocAll(state, ["selectedGenome", "selectedGeneName", "loadedFeatures"], [newSelectedGenome, newSelectedGeneName, newLoadedFeatures]);
   },
   getInitialState: function() {
     if (state) {
       return this.updateStateToProps(state);
     }
     else {
-      return { selectedGenomeName: null, selectedGeneName: null };
+      return { selectedGenome: null, selectedGeneName: null, loadedFeatures: null };
     }
   },
   componentWillUnmount: function() {
     state = this.state;
   },
-  updateSelectedGenomeName: function(e) {
-    this.setState({ selectedGenomeName: e.target.value });
+  updateSelectedGenome: function(e) {
+    var newGenomeName = e.target.value;
+    if (this.state.selectedGenome && this.state.selectedGenome.name === newGenomeName) {
+      return;
+    }
+    this.props.startLoading();
+    queryGenome(newGenomeName, function(newGenome) {
+      this.setState({ selectedGenome: newGenome, selectedGeneName: null, loadedFeatures: null });
+      this.props.stopLoading();
+    }.bind(this), function(errorMessage) {
+      alert("Couldn't load genome: " + errorMessage);
+      this.props.stopLoading();
+    });
   },
   updateSelectedGeneName: function(e) {
-    this.setState({ selectedGeneName: e.target.value });
+    var geneName = e.target.value;
+    this.props.startLoading();
+    queryFeatures(this.state.selectedGenome.name, geneName, function(features) {
+      this.setState({ selectedGeneName: geneName, loadedFeatures: features });
+      this.props.stopLoading();
+    }.bind(this), function(errorMessage) {
+      alert("Error loading gene '" + geneName + "': " + errorMessage);
+      this.props.stopLoading();
+    }.bind(this));
   },
   render: function() {
     var genomeOptions = this.props.genomeNames.map(function(genomeName) {
       return <option value={genomeName} key={genomeName}>{genomeName}</option>;
     });
     var geneOptions;
-    if (this.state.selectedGenomeName) {
-      geneOptions = Object.keys(this.props.genomes[this.state.selectedGenomeName].geneMap).sort().map(function(geneName) {
+    if (this.state.selectedGenome) {
+      geneOptions = Object.keys(this.state.selectedGenome.geneMap).sort().map(function(geneName) {
         return <option value={geneName} key={geneName}>{geneName}</option>;
       });
     }
     else {
       geneOptions = null;
     }
-    var experimentFeatures;
-    if (this.state.selectedGeneName) {
-      experimentFeatures = this.props.experiments.map(function(experiment) {
-        var features = experiment.geneFeatureMeasurements[this.state.selectedGeneName];
-        return assoc(features, "condition", experiment.name);
-      }.bind(this));
-    }
-    else {
-      experimentFeatures = null;
-    }
+    var experimentFeatures = this.state.loadedFeatures;
     return (
-      <div>
-        <select value={this.state.selectedGenomeName} onChange={this.updateSelectedGenomeName} defaultValue="NONE_SELECTED" >
-          { !this.state.selectedGenomeName && <option value="NONE_SELECTED" disabled="disabled">Select a Genome</option> }
-          {genomeOptions}
-        </select>
-        <select value={this.state.selectedGeneName} onChange={this.updateSelectedGeneName} defaultValue="NONE_SELECTED" >
-          { !this.state.selectedGeneName && <option value="NONE_SELECTED" disabled="disabled">Select a Gene</option> }
-          {geneOptions}
-        </select>
-        { experimentFeatures &&
-          <Griddle results={experimentFeatures}
-            showSettings={true}
-            noDataMessage={"Import experiments and select a genome and gene."}
-            resultsPerPage={100}
-            initialSort={"condition"}
-            columnMetadata={
-              [ { columnName: "condition", displayName: "Condition", order: 0 },
-                { columnName: "numTASites", displayName: "Number of TA Sites", order: 1 },
-                { columnName: "geneLength", displayName: "Length of Gene", order: 2 },
-                { columnName: "numControlReads", displayName: "Raw # Sequence Reads Control", order: 3, customComponent: RoundToIntFormatter },
-                { columnName: "numExperimentReads", displayName: "Raw # Sequence Reads Experiment", order: 4, customComponent: RoundToIntFormatter },
-                { columnName: "modifiedRatio", displayName: "Modified Ratio", order: 5, customComponent: DecimalFormatter },
-                { columnName: "p", displayName: "Corrected p-value", order: 6, customComponent: ExponentialFormatter },
-                { columnName: "essentialityIndex", displayName: "Essentiality Index", order: 7, customComponent: DecimalFormatter },
-                { columnName: "fitness", displayName: "Normalized Fitness", order: 8, customComponent: DecimalFormatter }]}
-          /> }
-      </div>
+      <Loader loaded={!this.props.loading}>
+        <div>
+          <select value={this.state.selectedGenome && this.state.selectedGenome.name} onChange={this.updateSelectedGenome} defaultValue="NONE_SELECTED" >
+            { !this.state.selectedGenome && <option value="NONE_SELECTED" disabled="disabled">Select a genome</option> }
+            {genomeOptions}
+          </select>
+          <select value={this.state.selectedGeneName} onChange={this.updateSelectedGeneName} defaultValue="NONE_SELECTED" >
+            { !this.state.selectedGeneName && <option value="NONE_SELECTED" disabled="disabled">Select a gene</option> }
+            {geneOptions}
+          </select>
+          { experimentFeatures &&
+            <Griddle results={experimentFeatures}
+              showSettings={true}
+              noDataMessage={"Import experiments and select a genome and gene."}
+              resultsPerPage={100}
+              initialSort={"condition"}
+              columnMetadata={
+                [ { columnName: "condition", displayName: "Condition", order: 0 },
+                  { columnName: "numTASites", displayName: "Number of TA Sites", order: 1 },
+                  { columnName: "geneLength", displayName: "Length of Gene", order: 2 },
+                  { columnName: "numControlReads", displayName: "Raw # Sequence Reads Control", order: 3, customComponent: RoundToIntFormatter },
+                  { columnName: "numExperimentReads", displayName: "Raw # Sequence Reads Experiment", order: 4, customComponent: RoundToIntFormatter },
+                  { columnName: "modifiedRatio", displayName: "Modified Ratio", order: 5, customComponent: DecimalFormatter },
+                  { columnName: "p", displayName: "Corrected p-value", order: 6, customComponent: ExponentialFormatter },
+                  { columnName: "essentialityIndex", displayName: "Essentiality Index", order: 7, customComponent: DecimalFormatter },
+                  { columnName: "fitness", displayName: "Normalized Fitness", order: 8, customComponent: DecimalFormatter }]}
+            /> }
+        </div>
+      </Loader>
     );
   }
 }));
