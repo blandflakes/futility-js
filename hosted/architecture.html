@@ -7,8 +7,7 @@
   <body>
     <h1>Overview</h1>
     <p>Futility is currently a client-server architecture. Because the calculations we compute are fairly memory-intensive, we can't perform all of the processing
-    in the browser. Similarly, since the tools for building these simulations are easiest to use in the browser, we can't do all of the work in an offline tool (further,
-    we wouldn't be able to host a public version of the tool if it has to be installed).
+    in the browser. Similarly, since the tools for building these simulations are easiest to use in the browser, we can't easily do all of the work in an offline tool.
     <p>The components are split into three parts:</p>
     <ul>
       <li>The javascript front-end, called "futility-js"</li>
@@ -40,9 +39,11 @@
     <ul>
       <li>Ring</li>
       <li>Gson</li>
+      <li>Nippy</li>
     </ul>
     <p>futility-server is a very simple Clojure server interface in front of futility-lib. It runs a ring server that listens on the HTTP route "/futility". Requests on this
-    route are parsed into the appropriate classes using Gson. Once the results are returned from futility-lib, they are serialized to a JSON string using Gson.</p>
+    route are parsed into the appropriate classes using Gson. Once the results are returned from futility-lib, they are serialized to a JSON string using Gson. Nippy is
+    used to serialize the state of the session when we want to export it for future work.</p>
     <h2>futility-lib</h2>
     <p><a href="https://github.com/blandflakes/futility-lib">Repository</a></p>
     <h3>Libraries Used</h3>
@@ -52,6 +53,5 @@
     <p>futility-lib is the library responsible for performing analysis on raw data. It is written in Java, and takes some very simple structures, performs analysis, and then
     returns similarly simple structure. We use a handwritten multinomial sampling method (possibly ripe for optimization) and we use the mannWhitneyU methods available in
     commons-math3.</p>
-
   </body>
 </html>
