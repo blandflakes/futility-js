@@ -145,8 +145,10 @@ function visibleItems(mapping, index, scale) {
 
 var state = null;
 
-function bindZoom(xScale, yScale, self) {
-  var zoom = d3.behavior.zoom().x(xScale).scaleExtent([1, 10]).on("zoom", function() {
+function bindZoom(zoom, self) {
+  zoom.on("zoom", function() {
+    var xScale = this.state.scales.x;
+    var yScale = this.state.scales.y;
     if (xScale.domain()[0] < 0) {
       window.console.log("Detected panning visualization too far to the right. Resetting x domain to [0, width].");
       zoom.translate([zoom.translate()[0] - xScale(0) + xScale.range()[0], zoom.translate()[1]]);
@@ -176,7 +178,8 @@ export var GenomeVisualizer = connect(mapStateToProps, mapDispatchToProps)(React
     else {
       var xScale = d3.scale.linear().domain([0, this.width]).range([0, this.width]);
       var yScale = d3.scale.linear().domain([0, this.readCeiling]).range([this.height, 0]);
-      var zoom = bindZoom(xScale, yScale, this);
+      var zoom = d3.behavior.zoom().x(xScale).scaleExtent([1, 10]);
+      bindZoom(zoom, this);
       return { selectedDataSetName: null, positionalInput: "", scales: { x: xScale, y: yScale }, maxPosition: 0, zoom: zoom,
                selectedGenome: null, displayedDataSets: {}};
     }
@@ -201,7 +204,8 @@ export var GenomeVisualizer = connect(mapStateToProps, mapDispatchToProps)(React
     }.bind(this));
     var newDisplayedDataSets = dissocAll(state.displayedDataSets, new Set(dataSetsToRemove));
     // Zoom must be rebound, as "this" has changed if we're remounting.
-    var zoom = bindZoom(state.scales.x, state.scales.y, this);
+    var zoom = state.zoom;
+    bindZoom(zoom, this);
     return assocAll(state, ["selectedGenome", "selectedDataSetName", "displayedDataSets", "zoom"],
                     [newSelectedGenome, newSelectedDataSetName, newDisplayedDataSets, zoom]);
   },
