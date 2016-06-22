@@ -14,13 +14,7 @@
     <h1>Futility</h1>
     <p>Welcome to fUtility (a utility for fitness). fUtility is an online tool for Tn-Seq data analysis and visualization. It has been designed to work with the phage-based platform for next gen sequencing of high-density transposon libraries described in <a href="http://www.biomedcentral.com/1471-2164/16/252">Santiago et al. 2015. BMC Genomics</a>. We have used this platform to identify genes conferring an increase or decrease in fitness in the presence of a set of antibiotics (both clinically-used antibiotics and probes). This dataset allows us to nominate mechanisms of action for compounds with an unknown target and to predict functions for hypothetical genes.</p>
     <h2>Where is the tool?</h2>
-    <!--<p>We have a hosted version of the tool <a href="futility.html">here.</a> Note that this version runs on shared systems. Use this tool if:</p>
-    <ul>
-      <li>You are just exploring.</li>
-      <li>Your computer has very dated hardware</li>
-      <li>Your internet connection is reliable.</li>
-    </ul>-->
-    <p>For regular usage, or cases where you want to use the tool offline, download the tool <a href="downloads/futility.jar">here.</a> This tool requires Java (version 7, at least) to be installed on your machine. Run it with "java -jar futility.jar". It will start a local web server, and if go to this link: <a href="http://localhost:9000/futility.html">http://localhost:9000/futility.html</a> you'll see the same tool that we provide above.</p>
+    <p>Download the tool <a href="downloads/futility.jar">here.</a> This tool requires Java (version 7, at least) to be installed on your machine. Run it with "java -jar futility.jar". It will start a local web server, and if go to this link: <a href="http://localhost:9000/futility.html">http://localhost:9000/futility.html</a> you'll see the same tool that we provide above.</p>
     <p>Note: If the server fails to start up with the message "Address already in use", you can start the tool on a different port by passing a new port number to the command. For example, try "java -jar futility.jar 7777" (this will mean you need to go to an address like <a href="http://localhost:7777/futility.html">http://localhost:7777/futility.html).</a></p>
     <p>Note: On some operating systems (for example, Windows), the Java Virtual Machine starts up with a small heap. This can cause memory errors when analyzing data. In that case, it makes sense to run the jar and set the heap space to a higher value, like "java -Xmx2048m -jar futility.jar". We used 4096m when building the tool. A future version could potentially store the data session on disk, reducing the need for a large heap.</p>
     <p>For more details on the architecture of the tool, see <a href="architecture.html">this document.</a></p>
