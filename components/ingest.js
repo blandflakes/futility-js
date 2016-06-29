@@ -246,21 +246,32 @@ var ExperimentUploader = React.createClass({
 var DataViewer = React.createClass({
   removalCallback: function(newAppState) {
     this.props.setAppState(newAppState);
+    this.props.stopLoading();
   },
   removalErrorHandler: function(errorMessage) {
     alert("Unable to remove data: " + errorMessage);
+    this.props.stopLoading();
   },
   render: function() {
     var genomeRows = this.props.genomeNames.map(function(genomeName) {
-      var boundRemoveGenome = function() { removeGenome(genomeName, this.removalCallback, this.removalErrorHandler); }.bind(this);
+      var boundRemoveGenome = function() {
+        this.props.startLoading();
+        removeGenome(genomeName,this.removalCallback, this.removalErrorHandler);
+      }.bind(this);
       return <tr key={genomeName}><td>{genomeName}</td><td><button onClick={boundRemoveGenome}>Remove</button></td></tr>;
     }.bind(this));
     var controlRows = this.props.controlNames.map(function(controlName) {
-      var boundRemoveControl = function() { removeControl(controlName, this.props.setAppState, this.removalErrorHandler); }.bind(this);
+      var boundRemoveControl = function() {
+        this.props.startLoading();
+        removeControl(controlName, this.removalCallback, this.removalErrorHandler);
+      }.bind(this);
       return <tr key={controlName}><td>{controlName}</td><td>{this.props.controls[controlName].genomeName}</td><td><button onClick={boundRemoveControl}>Remove</button></td></tr>;
     }.bind(this));
     var experimentRows = this.props.experimentNames.map(function(experimentName) {
-      var boundRemoveExperiment = function() { removeExperiment(experimentName, this.props.setAppState, this.removalErrorHandler); }.bind(this);
+      var boundRemoveExperiment = function() {
+        this.props.startLoading();
+        removeExperiment(experimentName, this.removalCallback, this.removalErrorHandler);
+      }.bind(this);
       return <tr key={experimentName}><td>{experimentName}</td><td>{this.props.experiments[experimentName].controlName}</td><td><button onClick={boundRemoveExperiment}>Remove</button></td></tr>;
     }.bind(this));
     return (
@@ -347,7 +358,9 @@ export const IngestDataInterface = connect(mapStateToProps, mapDispatchToProps)(
               />
           </div>
           <DataViewer genomeNames={this.props.genomeNames} controls={this.props.controls} experiments={this.props.experiments}
-            controlNames={this.props.controlNames} experimentNames={this.props.experimentNames} setAppState={this.props.setAppState} />
+            controlNames={this.props.controlNames} experimentNames={this.props.experimentNames} setAppState={this.props.setAppState}
+            startLoading={this.props.startLoading} stopLoading={this.props.stopLoading}
+          />
         </div>
       </Loader>
     );
