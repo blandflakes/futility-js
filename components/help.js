@@ -16,7 +16,7 @@ export const HelpInterface = React.createClass({
         <p>Click "Fitness Table." Here, you can select a genome, and then a gene within that genome. We'll load the analyzed features from each imported experiment and display them in
           the table. The table can be sorted by clicking on the columns.</p>
         <h2>How do I save my work?</h2>
-        <p>Under "Data Management", a section called "Import/Export State" allows you to export the current analyzed data (click "Export State"). This file can be imported later, which saves having to run the data through the analysis again. Be sure to move the file to a safe location - your computer may clean up temporary files periodically.</p>
+        <p>Your work is already saved under whichever directory you told futility to persist the session in (it defaults to ./futility-session). Future executions of this tool will reuse your session. You can back this directory up if you want to save your progress.</p>
         <h1>Problems</h1>
         <h2>I'm seeing "java.lang.OutOfMemoryError: Java heap space" or 'Error handling "file.igv" java heap space'</h2>
         <p>The Java Virtual Machine starts up with different heap space settings on each machine. You can start the project with more heap space by doing something like:

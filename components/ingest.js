@@ -4,14 +4,14 @@ import { connect } from 'react-redux';
 import { startLoading, stopLoading, setAppState } from '../actions/ingest';
 import { basename, readTextFile } from 'lib/files';
 import { analyzeGenome, analyzeControl, analyzeExperiment } from 'lib/analysis';
-import { removeControl, removeExperiment, removeGenome, restoreSession, saveSession  } from 'lib/data';
+import { removeControl, removeExperiment, removeGenome, clearSession  } from 'lib/data';
 
 const WORK_DELAY_MS = 0;
 
 const mapStateToProps = function(state) {
   return {
     loading: state.loading,
-    genomeNames: state.genomes,
+    genomeNames: Object.keys(state.genomes),
     controls: state.controls,
     controlNames: Object.keys(state.controls),
     experiments: state.experiments,
@@ -309,46 +309,28 @@ var DataViewer = React.createClass({
 
 
 export const IngestDataInterface = connect(mapStateToProps, mapDispatchToProps)(React.createClass({
-  getInitialState: function() {
-    return { importFilepath: "" };
-  },
-  updateImportFilepath: function(e) {
-    this.setState({ importFilepath: e.target.value });
-  },
-  importState: function() {
-    this.props.startLoading();
-    restoreSession(this.state.importFilepath, function(newState) {
-      this.setState({ importFilepath: "" });
-      this.props.setAppState(newState);
-      this.props.stopLoading();
-    }.bind(this), function(errorMessage) {
-      alert("Error restoring session: " + errorMessage);
-    }.bind(this));
-  },
-  exportState: function() {
-    this.props.startLoading();
-    saveSession(function(data) {
-      alert("Session saved to file with path: " + data.path);
-      this.props.stopLoading();
-    }.bind(this), function(errorMessage) {
-      alert("Error saving session: " + errorMessage);
-      this.props.stopLoading();
-    }.bind(this));
+  clearSession: function() {
+    var confirmed = confirm("Are you sure you want to delete all analyzed data?");
+    if (confirmed) {
+      this.props.startLoading();
+      clearSession(function(newState) {
+        this.props.setAppState(newState);
+        this.props.stopLoading();
+      }.bind(this), function(errorMessage) {
+        this.props.stopLoading();
+        alert("Error clearing state: " + errorMessage);
+      }.bind(this));
+    }
   },
   render: function() {
     return (
       <Loader loaded={!this.props.loading}>
         <div>
-          <div className="importSlashExport">
-            <h1>Import/Export State</h1>
-            <p>Use these options to import state (load previously analyzed sessions) or to export the current state to a file. Note that due to
-              memory limitations in the browser, we'll return a filepath pointing to the session that you should keep somewhere safe, and take that filepath
-              to restore the session.</p>
-            <h2>Import</h2>
-            <input className="importFilepathInput" placeholder="Path to session file" value={this.state.importFilepath} onChange={this.updateImportFilepath} />
-            <button className="importButton" onClick={this.importState} disabled={!this.state.importFilepath}>Import State</button>
-            <h2>Export</h2>
-            <button className="exportButton" onClick={this.exportState}>Export State</button>
+          <div className="clearSession">
+            <h1>Clear State</h1>
+            <p>Warning: This will delete all analyzed data on disk. As we analyze data, the results are written to disk so that you can come back to them later.</p>
+            <p>Use this button to start anew.</p>
+            <button className="clearButton" onClick={this.clearSession}>Clear!</button>
           </div>
           <div className="ingestData">
             <h1>Analyze Data Sets</h1>

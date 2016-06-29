@@ -10,7 +10,7 @@ import { assoc, assocAll, dissoc, dissocAll } from 'lib/func';
 const mapStateToProps = function(state) {
   return {
     loading: state.loading,
-    genomeNames: state.genomes,
+    genomeNames: Object.keys(state.genomes),
     controls: state.controls,
     experiments: state.experiments,
     dataSetNames: Object.keys(state.controls).concat(Object.keys(state.experiments))

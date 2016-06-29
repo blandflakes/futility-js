@@ -39,11 +39,13 @@
     <ul>
       <li>Ring</li>
       <li>Gson</li>
-      <li>Nippy</li>
+      <li>Sqlite</li>
+      <li>Yesql</li>
     </ul>
-    <p>futility-server is a very simple Clojure server interface in front of futility-lib. It runs a ring server that listens on the HTTP route "/futility". Requests on this
-    route are parsed into the appropriate classes using Gson. Once the results are returned from futility-lib, they are serialized to a JSON string using Gson. Nippy is
-    used to serialize the state of the session when we want to export it for future work.</p>
+    <p>futility-server is a Clojure server interface in front of futility-lib. It runs a ring server that listens on the HTTP route "/futility". Requests on this
+    route are parsed into the appropriate classes using Gson. Once the results are returned from futility-lib, they are serialized to a JSON string using Gson. A
+    rewrite has moved to persisting the imported data on disk to conserve memory - we write the sequence measurements out as JSON files, and insert the features
+    into a database to facilitate the fitness table.</p>
     <h2>futility-lib</h2>
     <p><a href="https://github.com/blandflakes/futility-lib">Repository</a></p>
     <h3>Libraries Used</h3>

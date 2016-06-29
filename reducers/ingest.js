@@ -2,7 +2,7 @@ import { assoc, assocAll, dissoc, dissocAll, merge } from 'lib/func';
 
 const initialState = {
   loading: false,
-  genomes: [],
+  genomes: {},
   // name -> {name: String, genomeName: String}
   controls: {},
   // name -> {name: String, controlName: String}

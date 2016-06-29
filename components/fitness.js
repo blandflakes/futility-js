@@ -9,7 +9,7 @@ import { assoc, assocAll } from 'lib/func';
 const mapStateToProps = function(state) {
   return {
     loading: state.loading,
-    genomeNames: state.genomes,
+    genomeNames: Object.keys(state.genomes),
     experiments: state.experiments
   };
 }
@@ -43,6 +43,7 @@ var ExponentialFormatter = formattedExponential(3);
 var RoundToIntFormatter = formattedDecimal(0);
 
 var state = null;
+
 export var FitnessTable = connect(mapStateToProps, mapDispatchToProps)(React.createClass({
   updateStateToProps: function(state) {
     var newSelectedGenome = state.selectedGenome;
@@ -61,14 +62,12 @@ export var FitnessTable = connect(mapStateToProps, mapDispatchToProps)(React.cre
           newSelectedGeneName = null;
           newLoadedFeatures = null;
         }
-        else {
-        }
       }
     }
     // Finally, remove any loaded experiments that were removed
     if (newLoadedFeatures) {
       newLoadedFeatures = newLoadedFeatures.filter(function(featureList) {
-        return this.props.experiments[featureList.condition];
+        return this.props.experiments[featureList[":condition"]];
       }.bind(this));
     }
     return assocAll(state, ["selectedGenome", "selectedGeneName", "loadedFeatures"], [newSelectedGenome, newSelectedGeneName, newLoadedFeatures]);
@@ -141,15 +140,15 @@ export var FitnessTable = connect(mapStateToProps, mapDispatchToProps)(React.cre
               resultsPerPage={100}
               initialSort={"condition"}
               columnMetadata={
-                [ { columnName: "condition", displayName: "Condition", order: 0 },
-                  { columnName: "numTASites", displayName: "Number of TA Sites", order: 1 },
-                  { columnName: "geneLength", displayName: "Length of Gene", order: 2 },
-                  { columnName: "numControlReads", displayName: "Raw # Sequence Reads Control", order: 3, customComponent: RoundToIntFormatter },
-                  { columnName: "numExperimentReads", displayName: "Raw # Sequence Reads Experiment", order: 4, customComponent: RoundToIntFormatter },
-                  { columnName: "modifiedRatio", displayName: "Modified Ratio", order: 5, customComponent: DecimalFormatter },
-                  { columnName: "p", displayName: "Corrected p-value", order: 6, customComponent: ExponentialFormatter },
-                  { columnName: "essentialityIndex", displayName: "Essentiality Index", order: 7, customComponent: DecimalFormatter },
-                  { columnName: "fitness", displayName: "Normalized Fitness", order: 8, customComponent: DecimalFormatter }]}
+                [ { columnName: ":condition", displayName: "Condition", order: 0 },
+                  { columnName: ":num_ta_sites", displayName: "Number of TA Sites", order: 1 },
+                  { columnName: ":gene_length", displayName: "Length of Gene", order: 2 },
+                  { columnName: ":num_control_reads", displayName: "Raw # Sequence Reads Control", order: 3, customComponent: RoundToIntFormatter },
+                  { columnName: ":num_experiment_reads", displayName: "Raw # Sequence Reads Experiment", order: 4, customComponent: RoundToIntFormatter },
+                  { columnName: ":modified_ratio", displayName: "Modified Ratio", order: 5, customComponent: DecimalFormatter },
+                  { columnName: ":p", displayName: "Corrected p-value", order: 6, customComponent: ExponentialFormatter },
+                  { columnName: ":essentiality_index", displayName: "Essentiality Index", order: 7, customComponent: DecimalFormatter },
+                  { columnName: ":fitness", displayName: "Normalized Fitness", order: 8, customComponent: DecimalFormatter }]}
             /> }
         </div>
       </Loader>
