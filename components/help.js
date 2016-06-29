@@ -16,12 +16,16 @@ export const HelpInterface = React.createClass({
         <p>Click "Fitness Table." Here, you can select a genome, and then a gene within that genome. We'll load the analyzed features from each imported experiment and display them in
           the table. The table can be sorted by clicking on the columns.</p>
         <h2>How do I save my work?</h2>
-        <p>Your work is already saved under whichever directory you told futility to persist the session in (it defaults to ./futility-session). Future executions of this tool will reuse your session. You can back this directory up if you want to save your progress.</p>
+        <p>Your work is already saved under whichever directory you told futility to persist the session in (it defaults to ./futility-session). Future executions of this tool will reuse your session. You can back this directory up if you want to save your progress. If you want to change the directory the tool uses, pass it an argument like this:
+          <pre>java -jar futility.jar -d /tmp/futility</pre></p>
         <h1>Problems</h1>
         <h2>I'm seeing "java.lang.OutOfMemoryError: Java heap space" or 'Error handling "file.igv" java heap space'</h2>
         <p>The Java Virtual Machine starts up with different heap space settings on each machine. You can start the project with more heap space by doing something like:
           <pre>java -Xmx 2048m -jar futility.jar</pre>
           This will start up the virtual machine with 2048 megabytes of heap space. We had no issues testing with 4096 megabytes.</p>
+        <h2>I'm seeing "Address already in use"</h2>
+        <p>Another program may be using the port we try to run futility on. First, check to make sure you don't already have a version of futility running. If you want to run the tool on another port, run it like:
+          <pre>java -jar futility.jar -p 9001</pre></p>
       </div>);
   }
 });
